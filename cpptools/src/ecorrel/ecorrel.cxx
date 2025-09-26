@@ -9,6 +9,8 @@ namespace EnergyCorrelators
     : fr()
     , fw()
     , frxw()
+    , findx1()
+    , findx2()
     {
         ;
     }
@@ -23,12 +25,22 @@ namespace EnergyCorrelators
         fw.clear();
         fr.clear();
         frxw.clear();
+        findx1.clear();
+        findx2.clear();
     }
 
     void CorrelatorsContainer::addwr(const double &w, const double &r)
     {
         fw.push_back(w);
         fr.push_back(r);
+    }
+
+    void CorrelatorsContainer::addwr(const double &w, const double &r, const double &indx1, const double &indx2)
+    {
+        fw.push_back(w);
+        fr.push_back(r);
+        findx1.push_back(indx1);
+        findx2.push_back(indx2);
     }
 
     std::vector<double> *CorrelatorsContainer::weights()
@@ -39,6 +51,16 @@ namespace EnergyCorrelators
     std::vector<double> *CorrelatorsContainer::rs()
     {
         return &fr;
+    }
+
+    std::vector<double> *CorrelatorsContainer::indices1()
+    {
+        return &findx1;
+    }
+
+    std::vector<double> *CorrelatorsContainer::indices2()
+    {
+        return &findx2;
     }
 
     const double *CorrelatorsContainer::wa()
@@ -61,6 +83,21 @@ namespace EnergyCorrelators
         return &frxw;
     }
 
+    void CorrelatorsContainer::PrintLists()
+    { // print content of the pair lists
+        for (size_t i = 0; i < fr.size(); i++)
+        {
+            if (findx1.size()==fr.size())
+            {
+                std::cout << "pair " << i << " distance " << fr[i] << " weight " << fw[i] << " index1 " << findx1[i] << " index2 " << findx2[i] << std::endl;
+            }
+            else
+            {
+                std::cout << "pair " << i << " distance " << fr[i] << " weight " << fw[i] << std::endl;
+            }
+        }
+    }
+
     std::vector<fastjet::PseudoJet> constituents_as_vector(const fastjet::PseudoJet &jet)
     {
         std::vector<fastjet::PseudoJet> _v;
@@ -78,10 +115,11 @@ namespace EnergyCorrelators
         ;
     }
 
-    CorrelatorBuilder::CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const double &scale, const int &nmax)
+    CorrelatorBuilder::CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const double &scale, const int &nmax, const int &power, const double dphi_cut = -9999, const double deta_cut = -9999)
     : fec()
     , fncmax(nmax)
     {
+        // std::cout << "Initializing n point correlator with power " << power << " for " << parts.size() << " particles" << std::endl;
         if (fncmax < 2)
         {
             throw std::overflow_error("asking for n-point correlator with n < 2?");
@@ -98,9 +136,24 @@ namespace EnergyCorrelators
         {
             for (size_t j = 0; j < parts.size(); j++)
             {
+                double _phi12 = fabs(parts[i].delta_phi_to(parts[j])); // expecting delta_phi_to() to return values in [-pi, pi]
+                double _eta12 = parts[i].eta() - parts[j].eta();
+                if (dphi_cut > -1)
+                { // if dphi_cut is on, apply it to pairs
+                    double _pt1 = parts[i].pt();
+                    double _pt2 = parts[j].pt();
+                    int _q1 = 1; // FIX ME: just dummy (no charge info available yet in data and full sim)
+                    int _q2 = 1;
+                    if ( !ApplyDeltaPhiRejection(dphi_cut, _q1, _q2, _pt1, _pt2, _phi12) ) continue;
+                }
+                if (deta_cut > -1)
+                { // if deta_cut is on, apply it to pairs
+                    if ( !ApplyDeltaEtaRejection(deta_cut, _eta12) ) continue;
+                }
                 double _d12 = parts[i].delta_R(parts[j]);
                 double _w2 = parts[i].perp() * parts[j].perp() / std::pow(scale, 2);
-                fec[2 - 2]->addwr(_w2, _d12);
+                _w2 = pow(_w2, power);
+                fec[2 - 2]->addwr(_w2, _d12, (double)(i), (double)(j)); // save weight, distance and indices of the pair
                 if (fncmax < 3)
                     continue;
                 for (size_t k = 0; k < parts.size(); k++)
@@ -108,8 +161,11 @@ namespace EnergyCorrelators
                     double _d13 = parts[i].delta_R(parts[k]);
                     double _d23 = parts[j].delta_R(parts[k]);
                     double _w3 = parts[i].perp() * parts[j].perp() * parts[k].perp() / std::pow(scale, 3);
+                    _w3 = pow(_w3, power);
                     double _d3max = std::max({_d12, _d13, _d23});
-                    fec[3 - 2]->addwr(_w3, _d3max);
+                    if (fabs(_d3max-_d12)<1E-5) fec[3 - 2]->addwr(_w3, _d3max, (double)(i), (double)(j));
+                    if (fabs(_d3max-_d13)<1E-5) fec[3 - 2]->addwr(_w3, _d3max, (double)(i), (double)(k));
+                    if (fabs(_d3max-_d23)<1E-5) fec[3 - 2]->addwr(_w3, _d3max, (double)(j), (double)(k));
                     if (fncmax < 4)
                         continue;
                     for (size_t l = 0; l < parts.size(); l++)
@@ -118,8 +174,14 @@ namespace EnergyCorrelators
                         double _d24 = parts[j].delta_R(parts[l]);
                         double _d34 = parts[k].delta_R(parts[l]);
                         double _w4 = parts[i].perp() * parts[j].perp() * parts[k].perp() * parts[l].perp() / std::pow(scale, 4);
+                        _w4 = pow(_w4, power);
                         double _d4max = std::max({_d12, _d13, _d23, _d14, _d24, _d34});
-                        fec[4 - 2]->addwr(_w4, _d4max);
+                        if (fabs(_d4max-_d12)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, (double)(i), (double)(j));
+                        if (fabs(_d4max-_d13)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, (double)(i), (double)(k));
+                        if (fabs(_d4max-_d23)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, (double)(j), (double)(k));
+                        if (fabs(_d4max-_d14)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, (double)(i), (double)(l));
+                        if (fabs(_d4max-_d24)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, (double)(j), (double)(l));
+                        if (fabs(_d4max-_d34)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, (double)(k), (double)(l));
                         if (fncmax < 5)
                             continue;
                         for (size_t m = 0; m < parts.size(); m++)
@@ -129,8 +191,18 @@ namespace EnergyCorrelators
                             double _d35 = parts[k].delta_R(parts[m]);
                             double _d45 = parts[l].delta_R(parts[m]);
                             double _w5 = parts[i].perp() * parts[j].perp() * parts[k].perp() * parts[l].perp() * parts[m].perp() / std::pow(scale, 5);
+                            _w5 = pow(_w5, power);
                             double _d5max = std::max({_d12, _d13, _d23, _d14, _d24, _d34, _d15, _d25, _d35, _d45});
-                            fec[5 - 2]->addwr(_w5, _d5max);
+                            if (fabs(_d5max-_d12)<1E-5) fec[5 - 2]->addwr(_w5, _d5max, (double)(i), (double)(j));
+                            if (fabs(_d5max-_d13)<1E-5) fec[5 - 2]->addwr(_w5, _d5max, (double)(i), (double)(k));
+                            if (fabs(_d5max-_d23)<1E-5) fec[5 - 2]->addwr(_w5, _d5max, (double)(j), (double)(k));
+                            if (fabs(_d5max-_d14)<1E-5) fec[5 - 2]->addwr(_w5, _d5max, (double)(i), (double)(l));
+                            if (fabs(_d5max-_d24)<1E-5) fec[5 - 2]->addwr(_w5, _d5max, (double)(j), (double)(l));
+                            if (fabs(_d5max-_d34)<1E-5) fec[5 - 2]->addwr(_w5, _d5max, (double)(k), (double)(l));
+                            if (fabs(_d5max-_d15)<1E-5) fec[5 - 2]->addwr(_w5, _d5max, (double)(i), (double)(m));
+                            if (fabs(_d5max-_d25)<1E-5) fec[5 - 2]->addwr(_w5, _d5max, (double)(j), (double)(m));
+                            if (fabs(_d5max-_d35)<1E-5) fec[5 - 2]->addwr(_w5, _d5max, (double)(k), (double)(m));
+                            if (fabs(_d5max-_d35)<1E-5) fec[5 - 2]->addwr(_w5, _d5max, (double)(l), (double)(m));
                         }
                     }
                 }
@@ -160,6 +232,20 @@ namespace EnergyCorrelators
         fec.clear();
     }
 
+    bool CorrelatorBuilder::ApplyDeltaPhiRejection(const double dphi_cut, const double q1, const double q2, const double pt1, const double pt2, const double phi12)
+    {
+        double R = 1.1; // reference radius for TPC
+        double Bz = 0.5;
+        double phi_star = phi12 + q1*asin(-0.015*Bz*R/pt1) - q2*asin(-0.015*Bz*R/pt2);
+        if ( fabs(phi_star)<dphi_cut ) return false;  
+        return true;
+    }
+
+    bool CorrelatorBuilder::ApplyDeltaEtaRejection(const double deta_cut, const double eta12)
+    {
+        if ( fabs(eta12)<deta_cut ) return false;
+        return true;
+    }
 
 	std::vector<fastjet::PseudoJet> merge_signal_background_pjvectors(const std::vector<fastjet::PseudoJet> &signal, 
 																	  const std::vector<fastjet::PseudoJet> &background,
