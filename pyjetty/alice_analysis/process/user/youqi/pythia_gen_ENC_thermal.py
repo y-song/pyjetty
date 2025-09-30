@@ -21,7 +21,7 @@ from pyjetty.mputils import *
 
 from heppy.pythiautils import configuration as pyconf
 import pythia8
-import pythiafjext
+import pythiafjext # /global/cfs/cdirs/alice/youqi/mypyjetty/heppy/cpptools/src/pythiafjext/
 import pythiaext
 import ecorrel
 
@@ -164,7 +164,7 @@ class PythiaGenENCThermal(process_base.ProcessBase):
             hist_list_name = "hist_list_R%s" % str(jetR).replace('.', '')
             setattr(self, hist_list_name, [])
 
-            R_label = str(jetR).replace('.', '') + 'Scaled'
+            R_label = str(jetR).replace('.', '')# + 'Scaled'
 
             name = 'h_matched_area_JetPt_ch_R{}'.format(R_label)
             print('Initialize histogram',name)
@@ -207,6 +207,49 @@ class PythiaGenENCThermal(process_base.ProcessBase):
             setattr(self, name, h)
             getattr(self, hist_list_name).append(h)
 
+            dr_bins = linbins(-0.05, 0.4, 90)
+            name = 'h_matched_dR_pp_std_combined_std_R{}'.format(R_label)
+            h = ROOT.TH1D(name, name, 90, dr_bins)
+            h.GetXaxis().SetTitle('#DeltaR(combined-pp)')
+            h.GetYaxis().SetTitle('Number of jets')
+            setattr(self, name, h)
+            getattr(self, hist_list_name).append(h)
+            
+            name = 'h_matched_dR_pp_std_combined_wta_R{}'.format(R_label)
+            h = ROOT.TH1D(name, name, 90, dr_bins)
+            h.GetXaxis().SetTitle('#DeltaR(combined WTA--pp STD)')
+            h.GetYaxis().SetTitle('Number of jets')
+            setattr(self, name, h)
+            getattr(self, hist_list_name).append(h)
+            
+            name = 'h_matched_dR_pp_wta_combined_std_R{}'.format(R_label)
+            h = ROOT.TH1D(name, name, 90, dr_bins)
+            h.GetXaxis().SetTitle('#DeltaR(combined STD--pp WTA)')
+            h.GetYaxis().SetTitle('Number of jets')
+            setattr(self, name, h)
+            getattr(self, hist_list_name).append(h)
+            
+            name = 'h_matched_dR_pp_wta_combined_wta_R{}'.format(R_label)
+            h = ROOT.TH1D(name, name, 90, dr_bins)
+            h.GetXaxis().SetTitle('#DeltaR(combined WTA--pp WTA)')
+            h.GetYaxis().SetTitle('Number of jets')
+            setattr(self, name, h)
+            getattr(self, hist_list_name).append(h)
+            
+            name = 'h_matched_dR_pp_wta_pp_std_R{}'.format(R_label)
+            h = ROOT.TH1D(name, name, 90, dr_bins)
+            h.GetXaxis().SetTitle('#DeltaR(pp WTA--pp STD)')
+            h.GetYaxis().SetTitle('Number of jets')
+            setattr(self, name, h)
+            getattr(self, hist_list_name).append(h)
+            
+            name = 'h_matched_dR_combined_wta_combined_std_R{}'.format(R_label)
+            h = ROOT.TH1D(name, name, 90, dr_bins)
+            h.GetXaxis().SetTitle('#DeltaR(combined WTA--combined STD)')
+            h.GetYaxis().SetTitle('Number of jets')
+            setattr(self, name, h)
+            getattr(self, hist_list_name).append(h)
+            
             # histograms for local energy density related checks
             for observable in ['rho_local', 'mult']:
                 for thrd in self.thrd_list:
@@ -237,139 +280,139 @@ class PythiaGenENCThermal(process_base.ProcessBase):
                     setattr(self, name, h)
                     getattr(self, hist_list_name).append(h)
 
-                    for coneR in self.coneR_list:
-                        name = 'h_perpcone{}_matched_{}_JetPt_ch_R{}_{}'.format(coneR, observable, R_label, thrd_label)
-                        print('Initialize histogram',name)
-                        h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
-                        h.GetXaxis().SetTitle('p_{T, pp jet}')
-                        h.GetYaxis().SetTitle(observable)
-                        setattr(self, name, h)
-                        getattr(self, hist_list_name).append(h)
+                    # for coneR in self.coneR_list:
+                    #     name = 'h_perpcone{}_matched_{}_JetPt_ch_R{}_{}'.format(coneR, observable, R_label, thrd_label)
+                    #     print('Initialize histogram',name)
+                    #     h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
+                    #     h.GetXaxis().SetTitle('p_{T, pp jet}')
+                    #     h.GetYaxis().SetTitle(observable)
+                    #     setattr(self, name, h)
+                    #     getattr(self, hist_list_name).append(h)
 
-                        name = 'h_perpcone{}_matched_{}_JetPt_ch_combined_R{}_{}'.format(coneR, observable, R_label, thrd_label)
-                        print('Initialize histogram',name)
-                        h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
-                        h.GetXaxis().SetTitle('p_{T, comb jet}')
-                        h.GetYaxis().SetTitle(observable)
-                        setattr(self, name, h)
-                        getattr(self, hist_list_name).append(h)
+                    #     name = 'h_perpcone{}_matched_{}_JetPt_ch_combined_R{}_{}'.format(coneR, observable, R_label, thrd_label)
+                    #     print('Initialize histogram',name)
+                    #     h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
+                    #     h.GetXaxis().SetTitle('p_{T, comb jet}')
+                    #     h.GetYaxis().SetTitle(observable)
+                    #     setattr(self, name, h)
+                    #     getattr(self, hist_list_name).append(h)
 
-                        name = 'h_jetcone{}_matched_{}_JetPt_ch_R{}_{}'.format(coneR, observable, R_label, thrd_label)
-                        print('Initialize histogram',name)
-                        h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
-                        h.GetXaxis().SetTitle('p_{T, pp jet}')
-                        h.GetYaxis().SetTitle(observable)
-                        setattr(self, name, h)
-                        getattr(self, hist_list_name).append(h)
+                    #     name = 'h_jetcone{}_matched_{}_JetPt_ch_R{}_{}'.format(coneR, observable, R_label, thrd_label)
+                    #     print('Initialize histogram',name)
+                    #     h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
+                    #     h.GetXaxis().SetTitle('p_{T, pp jet}')
+                    #     h.GetYaxis().SetTitle(observable)
+                    #     setattr(self, name, h)
+                    #     getattr(self, hist_list_name).append(h)
 
-                        name = 'h_jetcone{}_matched_{}_JetPt_ch_combined_R{}_{}'.format(coneR, observable, R_label, thrd_label)
-                        print('Initialize histogram',name)
-                        h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
-                        h.GetXaxis().SetTitle('p_{T, comb jet}')
-                        h.GetYaxis().SetTitle(observable)
-                        setattr(self, name, h)
-                        getattr(self, hist_list_name).append(h)
+                    #     name = 'h_jetcone{}_matched_{}_JetPt_ch_combined_R{}_{}'.format(coneR, observable, R_label, thrd_label)
+                    #     print('Initialize histogram',name)
+                    #     h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
+                    #     h.GetXaxis().SetTitle('p_{T, comb jet}')
+                    #     h.GetYaxis().SetTitle(observable)
+                    #     setattr(self, name, h)
+                    #     getattr(self, hist_list_name).append(h)
 
             # ENC histograms
-            for ipoint in range(2, self.npoint+1):
+            # for ipoint in range(2, self.npoint+1):
 
-                for thrd in self.thrd_list:
+            #     for thrd in self.thrd_list:
 
-                    thrd_label = 'trk{:.0f}'.format(thrd*10)
+            #         thrd_label = 'trk{:.0f}'.format(thrd*10)
 
-                    pt_bins = linbins(0,200,200)
-                    RL_bins = logbins(1E-4,1,50)
+            #         pt_bins = linbins(0,200,200)
+            #         RL_bins = logbins(1E-4,1,50)
 
-                    name = 'h_ENC{}_JetPt_ch_R{}_{}'.format(str(ipoint), R_label, thrd_label)
-                    print('Initialize histogram',name)
-                    h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                    h.GetXaxis().SetTitle('p_{T, pp jet}')
-                    h.GetYaxis().SetTitle('R_{L}')
-                    setattr(self, name, h)
-                    getattr(self, hist_list_name).append(h)
+            #         name = 'h_ENC{}_JetPt_ch_R{}_{}'.format(str(ipoint), R_label, thrd_label)
+            #         print('Initialize histogram',name)
+            #         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+            #         h.GetXaxis().SetTitle('p_{T, pp jet}')
+            #         h.GetYaxis().SetTitle('R_{L}')
+            #         setattr(self, name, h)
+            #         getattr(self, hist_list_name).append(h)
 
-                    name = 'h_ENC{}_JetPt_ch_combined_R{}_{}'.format(str(ipoint), R_label, thrd_label)
-                    print('Initialize histogram',name)
-                    h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                    h.GetXaxis().SetTitle('p_{T, comb jet}')
-                    h.GetYaxis().SetTitle('R_{L}')
-                    setattr(self, name, h)
-                    getattr(self, hist_list_name).append(h)
+            #         name = 'h_ENC{}_JetPt_ch_combined_R{}_{}'.format(str(ipoint), R_label, thrd_label)
+            #         print('Initialize histogram',name)
+            #         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+            #         h.GetXaxis().SetTitle('p_{T, comb jet}')
+            #         h.GetYaxis().SetTitle('R_{L}')
+            #         setattr(self, name, h)
+            #         getattr(self, hist_list_name).append(h)
 
-                    for pair_type_label in self.pair_type_labels:
+                    # for pair_type_label in self.pair_type_labels:
 
-                        name = 'h_matched_ENC{}_JetPt_ch_R{}_{}'.format(str(ipoint)+pair_type_label, R_label, thrd_label)
-                        print('Initialize histogram',name)
-                        h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                        h.GetXaxis().SetTitle('p_{T, pp jet}')
-                        h.GetYaxis().SetTitle('R_{L}')
-                        setattr(self, name, h)
-                        getattr(self, hist_list_name).append(h)
+                    #     name = 'h_matched_ENC{}_JetPt_ch_R{}_{}'.format(str(ipoint)+pair_type_label, R_label, thrd_label)
+                    #     print('Initialize histogram',name)
+                    #     h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                    #     h.GetXaxis().SetTitle('p_{T, pp jet}')
+                    #     h.GetYaxis().SetTitle('R_{L}')
+                    #     setattr(self, name, h)
+                    #     getattr(self, hist_list_name).append(h)
 
-                        name = 'h_matched_ENC{}_JetPt_ch_combined_R{}_{}'.format(str(ipoint)+pair_type_label, R_label, thrd_label)
-                        print('Initialize histogram',name)
-                        h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                        h.GetXaxis().SetTitle('p_{T, comb jet}')
-                        h.GetYaxis().SetTitle('R_{L}')
-                        setattr(self, name, h)
-                        getattr(self, hist_list_name).append(h)
+                    #     name = 'h_matched_ENC{}_JetPt_ch_combined_R{}_{}'.format(str(ipoint)+pair_type_label, R_label, thrd_label)
+                    #     print('Initialize histogram',name)
+                    #     h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                    #     h.GetXaxis().SetTitle('p_{T, comb jet}')
+                    #     h.GetYaxis().SetTitle('R_{L}')
+                    #     setattr(self, name, h)
+                    #     getattr(self, hist_list_name).append(h)
 
-                        name = 'h_matched_ENC{}_JetPt_ch_mix_R{}_{}'.format(str(ipoint)+pair_type_label, R_label, thrd_label)
-                        print('Initialize histogram',name)
-                        h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                        h.GetXaxis().SetTitle('p_{T, pp jet}')
-                        h.GetYaxis().SetTitle('R_{L}')
-                        setattr(self, name, h)
-                        getattr(self, hist_list_name).append(h)
+                    #     name = 'h_matched_ENC{}_JetPt_ch_mix_R{}_{}'.format(str(ipoint)+pair_type_label, R_label, thrd_label)
+                    #     print('Initialize histogram',name)
+                    #     h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                    #     h.GetXaxis().SetTitle('p_{T, pp jet}')
+                    #     h.GetYaxis().SetTitle('R_{L}')
+                    #     setattr(self, name, h)
+                    #     getattr(self, hist_list_name).append(h)
 
-                        for coneR in self.coneR_list:
-                            name = 'h_perpcone{}_matched_ENC{}_JetPt_ch_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
-                            print('Initialize histogram',name)
-                            h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                            h.GetXaxis().SetTitle('p_{T, pp jet}')
-                            h.GetYaxis().SetTitle('R_{L}')
-                            setattr(self, name, h)
-                            getattr(self, hist_list_name).append(h)
+                    #     for coneR in self.coneR_list:
+                    #         name = 'h_perpcone{}_matched_ENC{}_JetPt_ch_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
+                    #         print('Initialize histogram',name)
+                    #         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                    #         h.GetXaxis().SetTitle('p_{T, pp jet}')
+                    #         h.GetYaxis().SetTitle('R_{L}')
+                    #         setattr(self, name, h)
+                    #         getattr(self, hist_list_name).append(h)
 
-                            name = 'h_perpcone{}_matched_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
-                            print('Initialize histogram',name)
-                            h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                            h.GetXaxis().SetTitle('p_{T, comb jet}')
-                            h.GetYaxis().SetTitle('R_{L}')
-                            setattr(self, name, h)
-                            getattr(self, hist_list_name).append(h)
+                    #         name = 'h_perpcone{}_matched_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
+                    #         print('Initialize histogram',name)
+                    #         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                    #         h.GetXaxis().SetTitle('p_{T, comb jet}')
+                    #         h.GetYaxis().SetTitle('R_{L}')
+                    #         setattr(self, name, h)
+                    #         getattr(self, hist_list_name).append(h)
 
-                            name = 'h_perpcone{}_matched_ENC{}_JetPt_ch_mix_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
-                            print('Initialize histogram',name)
-                            h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                            h.GetXaxis().SetTitle('p_{T, pp jet}')
-                            h.GetYaxis().SetTitle('R_{L}')
-                            setattr(self, name, h)
-                            getattr(self, hist_list_name).append(h)
+                    #         name = 'h_perpcone{}_matched_ENC{}_JetPt_ch_mix_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
+                    #         print('Initialize histogram',name)
+                    #         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                    #         h.GetXaxis().SetTitle('p_{T, pp jet}')
+                    #         h.GetYaxis().SetTitle('R_{L}')
+                    #         setattr(self, name, h)
+                    #         getattr(self, hist_list_name).append(h)
 
-                            name = 'h_jetcone{}_matched_ENC{}_JetPt_ch_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
-                            print('Initialize histogram',name)
-                            h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                            h.GetXaxis().SetTitle('p_{T, pp jet}')
-                            h.GetYaxis().SetTitle('R_{L}')
-                            setattr(self, name, h)
-                            getattr(self, hist_list_name).append(h)
+                    #         name = 'h_jetcone{}_matched_ENC{}_JetPt_ch_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
+                    #         print('Initialize histogram',name)
+                    #         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                    #         h.GetXaxis().SetTitle('p_{T, pp jet}')
+                    #         h.GetYaxis().SetTitle('R_{L}')
+                    #         setattr(self, name, h)
+                    #         getattr(self, hist_list_name).append(h)
 
-                            name = 'h_jetcone{}_matched_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
-                            print('Initialize histogram',name)
-                            h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                            h.GetXaxis().SetTitle('p_{T, comb jet}')
-                            h.GetYaxis().SetTitle('R_{L}')
-                            setattr(self, name, h)
-                            getattr(self, hist_list_name).append(h)
+                    #         name = 'h_jetcone{}_matched_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
+                    #         print('Initialize histogram',name)
+                    #         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                    #         h.GetXaxis().SetTitle('p_{T, comb jet}')
+                    #         h.GetYaxis().SetTitle('R_{L}')
+                    #         setattr(self, name, h)
+                    #         getattr(self, hist_list_name).append(h)
 
-                            name = 'h_jetcone{}_matched_ENC{}_JetPt_ch_mix_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
-                            print('Initialize histogram',name)
-                            h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                            h.GetXaxis().SetTitle('p_{T, pp jet}')
-                            h.GetYaxis().SetTitle('R_{L}')
-                            setattr(self, name, h)
-                            getattr(self, hist_list_name).append(h)
+                    #         name = 'h_jetcone{}_matched_ENC{}_JetPt_ch_mix_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
+                    #         print('Initialize histogram',name)
+                    #         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                    #         h.GetXaxis().SetTitle('p_{T, pp jet}')
+                    #         h.GetYaxis().SetTitle('R_{L}')
+                    #         setattr(self, name, h)
+                    #         getattr(self, hist_list_name).append(h)
 
     #---------------------------------------------------------------
     # Initiate jet defs, selectors, and sd (if required)
@@ -385,6 +428,12 @@ class PythiaGenENCThermal(process_base.ProcessBase):
             setattr(self, "jet_def_R%s" % jetR_str, jet_def)
             print(jet_def)
 
+            # copied from https://github.com/pdhankhe/pyjetty/blob/master/pyjetty/alihfjets/dev/hfjet/process/user/hf_jetaxes/process_data_hfjet_jetaxes_diff.py#L147
+            jet_def_wta = fj.JetDefinition(fj.cambridge_algorithm, jetR)
+            jet_def_wta.set_recombination_scheme(fj.WTA_pt_scheme)
+            setattr(self, "jet_def_wta_R%s" % jetR_str, jet_def_wta)
+            print(jet_def_wta)
+            
         # pwarning('max eta for particles after hadronization set to', self.max_eta_hadron)
         if self.rm_trk_min_pt:
             track_selector_ch = fj.SelectorPtMin(0)
@@ -410,8 +459,10 @@ class PythiaGenENCThermal(process_base.ProcessBase):
         iev = 0  # Event loop count
 
         while iev < self.nev:
+            if self.debug_level > 0:
+                print('ievt', iev)
             if iev % 100 == 0:
-                print('ievt',iev)
+                print('ievt', iev)
 
             if not pythia.next():
                 continue
@@ -456,75 +507,99 @@ class PythiaGenENCThermal(process_base.ProcessBase):
             jet_selector = getattr(self, "jet_selector_R%s" % jetR_str)
             jet_def = getattr(self, "jet_def_R%s" % jetR_str)
             track_selector_ch = getattr(self, "track_selector_ch")
+            jet_def_wta = getattr(self, "jet_def_wta_R%s" % jetR_str)
+            reclusterer_wta =  fjcontrib.Recluster(jet_def_wta)
 
             cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
             jets_pp = fj.sorted_by_pt( jet_selector(cs_pp.inclusive_jets()) )
+            jets_pp_wta = []
+            for jet_pp in jets_pp:
+                jets_pp_wta.append(reclusterer_wta.result(jet_pp))
 
             cs_combined = fj.ClusterSequenceArea(track_selector_ch(self.fj_particles_combined_beforeCS), jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
             jets_combined = fj.sorted_by_pt( jet_selector(cs_combined.inclusive_jets()) )
-
+            jets_combined_wta = []
+            for jet_combined in jets_combined:
+                jets_combined_wta.append(reclusterer_wta.result(jet_combined))
+            
             #-------------------------------------------------------------
             # match pp (pythia) jets to combined jets
             jets_combined_matched_to_pp = []
             for jet_pp in jets_pp:
                 matched_jet_combined = []
                 for index_jet_combined, jet_combined in enumerate(jets_combined):
+                    if (index_jet_combined in jets_combined_matched_to_pp):
+                        continue
                     mc_fraction = self.mc_fraction(jet_pp, jet_combined)
                     if (mc_fraction > self.mc_fraction_threshold) and (self.is_geo_matched(jet_combined, jet_pp, jetR)):
                         matched_jet_combined.append(index_jet_combined)
                     
-                if len(matched_jet_combined)==1: # accept if there is one match only (NB: but may be used multiple times)
+                if (len(matched_jet_combined)!=1):
+                    jets_combined_matched_to_pp.append(-1) 
+                else:
                     jets_combined_matched_to_pp.append(matched_jet_combined[0]) # save matched combined jet index
                     if self.debug_level > 0:
                         print('matched pp jet R',jetR,'pt',jet_pp.perp(),'phi',jet_pp.phi(),'eta',jet_pp.eta())
-                        print('matched combined jet index',matched_jet_combined[0],'pt',jets_combined[matched_jet_combined[0]].perp(),'phi',jets_combined[matched_jet_combined[0]].phi(),'eta',jets_combined[matched_jet_combined[0]].eta())     
-                else:
-                    jets_combined_matched_to_pp.append(-1) 
+                        print('matched combined jet index',matched_jet_combined[0],'pt',jets_combined[matched_jet_combined[0]].perp(),'phi',jets_combined[matched_jet_combined[0]].phi(),'eta',jets_combined[matched_jet_combined[0]].eta())                    
 
-            R_label = str(jetR).replace('.', '') + 'Scaled'
+            R_label = str(jetR).replace('.', '')# + 'Scaled'
 
             #-------------------------------------------------------------
             # loop over jets and fill EEC histograms with jet constituents
             for jet_pp in jets_pp:
                 hname = 'h_JetPt_ch_pp_R{}'.format(R_label)
                 getattr(self, hname).Fill(jet_pp.perp())
-                hname = 'h_ENC{{}}_JetPt_ch_R{}_{{}}'.format(R_label)
-                self.fill_jet_histograms(hname, jet_pp)
+                # hname = 'h_ENC{{}}_JetPt_ch_R{}_{{}}'.format(R_label)
+                # self.fill_jet_histograms(hname, jet_pp)
 
             for jet_combined in jets_combined:
                 hname = 'h_JetPt_ch_combined_R{}'.format(R_label)
                 getattr(self, hname).Fill(jet_combined.perp()-self.rho*jet_combined.area())
-                hname = 'h_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
-                self.fill_jet_histograms(hname, jet_combined)
+                # hname = 'h_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
+                # self.fill_jet_histograms(hname, jet_combined)
 
             #-------------------------------------------------------------
             # loop over matched jets and fill EEC histograms with jet constituents
             nmatched_pp = 0
             for index_jet_pp, jet_pp in enumerate(jets_pp):
+                jet_pp_wta = jets_pp_wta[index_jet_pp]
                 imatched_jet_combined = jets_combined_matched_to_pp[index_jet_pp]
                 if imatched_jet_combined > -1:
                     nmatched_pp += 1
                     jet_combined = jets_combined[imatched_jet_combined]
+                    jet_combined_wta = jets_combined_wta[imatched_jet_combined]
                     self.fill_matched_jets(jet_combined, jet_pp, jetR)
-                    for coneR in self.coneR_list:
-                        self.fill_matched_jetcone(jet_combined, jet_pp, jetR, coneR)
-                        if coneR == jetR:
-                            use_constituents = True
-                        else:
-                            use_constituents = False
-                        self.fill_matched_perpcone(jet_combined, jet_pp, jetR, coneR, use_constituents)
+                    # for coneR in self.coneR_list:
+                    #     self.fill_matched_jetcone(jet_combined, jet_pp, jetR, coneR)
+                    #     if coneR == jetR:
+                    #         use_constituents = True
+                    #     else:
+                    #         use_constituents = False
+                    #     self.fill_matched_perpcone(jet_combined, jet_pp, jetR, coneR, use_constituents)
                         
                     hname = 'h_matched_JetPt_ch_combined_vs_pp_R{}'.format(R_label)
                     getattr(self, hname).Fill(jet_combined.perp()-self.rho*jet_combined.area(), jet_pp.perp())
                     hname = 'h_matched_JetPt_ch_JES_R{}'.format(R_label)
                     getattr(self, hname).Fill(jet_pp.perp(), (jet_combined.perp()-self.rho*jet_combined.area()-jet_pp.perp())/jet_pp.perp())
+                    hname = 'h_matched_dR_pp_std_combined_std_R{}'.format(R_label)
+                    getattr(self, hname).Fill(jet_combined.delta_R(jet_pp))
+                    hname = 'h_matched_dR_pp_std_combined_wta_R{}'.format(R_label)
+                    getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_pp))
+                    hname = 'h_matched_dR_pp_wta_combined_std_R{}'.format(R_label)
+                    getattr(self, hname).Fill(jet_combined.delta_R(jet_pp_wta))
+                    hname = 'h_matched_dR_pp_wta_combined_wta_R{}'.format(R_label)
+                    getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_pp_wta))
+                    hname = 'h_matched_dR_pp_wta_pp_std_R{}'.format(R_label)
+                    getattr(self, hname).Fill(jet_pp_wta.delta_R(jet_pp))
+                    hname = 'h_matched_dR_combined_wta_combined_std_R{}'.format(R_label)
+                    getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_combined))
 
             if self.debug_level > 0:
                 if len(jets_pp)>0:
                     print('matching efficiency:',nmatched_pp/len(jets_pp),'=',nmatched_pp,'/',len(jets_pp))
                 else:
                     print('matching efficiency:',nmatched_pp,'/',len(jets_pp))
-
+    
     #---------------------------------------------------------------
     # Fill jet constituents for unmatched jets
     #---------------------------------------------------------------
@@ -553,39 +628,39 @@ class PythiaGenENCThermal(process_base.ProcessBase):
     #---------------------------------------------------------------
     def fill_matched_jets(self, jet_combined, jet_pp, jetR):
 
-        R_label = str(jetR).replace('.', '') + 'Scaled'
+        R_label = str(jetR).replace('.', '')# + 'Scaled'
 
         # fill EEC for matched comb jet using pp jet for jet pT
-        hname = 'h_matched_ENC{{}}_JetPt_ch_R{}_{{}}'.format(R_label)
-        self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, None)
+        # hname = 'h_matched_ENC{{}}_JetPt_ch_R{}_{{}}'.format(R_label)
+        # self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, None)
 
         # fill EEC for matched comb jet using comb jet (after rho subtraction) for jet pT
-        hname = 'h_matched_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
-        self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, None)
+        # hname = 'h_matched_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
+        # self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, None)
 
         # fill EEC for matched comb jet pp jet for jet pT selection and comb jet for energy weight
-        hname = 'h_matched_ENC{{}}_JetPt_ch_mix_R{}_{{}}'.format(R_label)
-        self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, None)
+        # hname = 'h_matched_ENC{{}}_JetPt_ch_mix_R{}_{{}}'.format(R_label)
+        # self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, None)
 
         hname = 'h_matched_area_JetPt_ch_R{}'.format(R_label)
         if self.debug_level > 0:
-            print('area',jet_combined.area(),'rho',self.rho,'matche pp jet pt',jet_pp.perp())
+            print('area',jet_combined.area(),'rho',self.rho,'matched pp jet pt',jet_pp.perp())
         getattr(self, hname).Fill(jet_pp.perp(), jet_combined.area())
 
         # fill EEC for matched comb jet using pp jet for jet pT
-        hname = 'h_matched_{{}}_JetPt_ch_R{}_{{}}'.format(R_label)
-        self.fill_matched_rho_local_histograms(hname, jet_pp, jet_combined, jetR, None)
+        # hname = 'h_matched_{{}}_JetPt_ch_R{}_{{}}'.format(R_label)
+        # self.fill_matched_rho_local_histograms(hname, jet_pp, jet_combined, jetR, None)
 
         # fill EEC for matched comb jet using comb jet (after rho subtraction) for jet pT
-        hname = 'h_matched_{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
-        self.fill_matched_rho_local_histograms(hname, jet_pp, jet_combined, jetR, None)
+        # hname = 'h_matched_{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
+        # self.fill_matched_rho_local_histograms(hname, jet_pp, jet_combined, jetR, None)
             
     #---------------------------------------------------------------
     # Fill perp cone for matched combined jets
     #---------------------------------------------------------------
     def fill_matched_perpcone(self, jet_combined, jet_pp, jetR, coneR, use_constituents):
 
-        R_label = str(jetR).replace('.', '') + 'Scaled'
+        R_label = str(jetR).replace('.', '') #+ 'Scaled'
 
         perp_jet1 = fj.PseudoJet()
         perp_jet1.reset_PtYPhiM(jet_combined.pt(), jet_combined.rapidity(), jet_combined.phi() + np.pi/2, jet_combined.m())
@@ -669,7 +744,7 @@ class PythiaGenENCThermal(process_base.ProcessBase):
     #---------------------------------------------------------------
     def fill_matched_jetcone(self, jet_combined, jet_pp, jetR, coneR):
 
-        R_label = str(jetR).replace('.', '') + 'Scaled'
+        R_label = str(jetR).replace('.', '') #+ 'Scaled'
 
         jetcone_R = coneR
 
@@ -871,10 +946,10 @@ class PythiaGenENCThermal(process_base.ProcessBase):
         scale_f = pythia.info.sigmaGen() / self.hNevents.GetBinContent(1)
         print("scaling factor is",scale_f)
 
-        for jetR in self.jetR_list:
-            hist_list_name = "hist_list_R%s" % str(jetR).replace('.', '') 
-            for h in getattr(self, hist_list_name):
-                h.Scale(scale_f)
+        # for jetR in self.jetR_list:
+        #     hist_list_name = "hist_list_R%s" % str(jetR).replace('.', '') 
+        #     for h in getattr(self, hist_list_name):
+        #         h.Scale(scale_f)
 
         print("N total final events:", int(self.hNevents.GetBinContent(1)), "with",
               int(pythia.info.nAccepted() - self.hNevents.GetBinContent(1)),

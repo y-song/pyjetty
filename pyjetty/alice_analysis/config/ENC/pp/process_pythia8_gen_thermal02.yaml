@@ -1,5 +1,5 @@
 # processing parameters
-jetR: [0.2]
+jetR: [0.4]
 
 debug_level: 0
 
