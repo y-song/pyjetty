@@ -207,48 +207,54 @@ class PythiaGenENCThermal(process_base.ProcessBase):
             setattr(self, name, h)
             getattr(self, hist_list_name).append(h)
 
-            dr_bins = linbins(-0.05, 0.4, 90)
-            name = 'h_matched_dR_pp_std_combined_std_R{}'.format(R_label)
-            h = ROOT.TH1D(name, name, 90, dr_bins)
-            h.GetXaxis().SetTitle('#DeltaR(combined-pp)')
-            h.GetYaxis().SetTitle('Number of jets')
-            setattr(self, name, h)
-            getattr(self, hist_list_name).append(h)
+            pt_array = [40, 60, 80]
+            dr_bins = linbins(-0.05, 0.5, 110)
             
-            name = 'h_matched_dR_pp_std_combined_wta_R{}'.format(R_label)
-            h = ROOT.TH1D(name, name, 90, dr_bins)
-            h.GetXaxis().SetTitle('#DeltaR(combined WTA--pp STD)')
-            h.GetYaxis().SetTitle('Number of jets')
-            setattr(self, name, h)
-            getattr(self, hist_list_name).append(h)
+            for i in (0, len(pt_array)-2):
+                pt_low = pt_array[i]
+                pt_high = pt_array[i+1]                        
             
-            name = 'h_matched_dR_pp_wta_combined_std_R{}'.format(R_label)
-            h = ROOT.TH1D(name, name, 90, dr_bins)
-            h.GetXaxis().SetTitle('#DeltaR(combined STD--pp WTA)')
-            h.GetYaxis().SetTitle('Number of jets')
-            setattr(self, name, h)
-            getattr(self, hist_list_name).append(h)
-            
-            name = 'h_matched_dR_pp_wta_combined_wta_R{}'.format(R_label)
-            h = ROOT.TH1D(name, name, 90, dr_bins)
-            h.GetXaxis().SetTitle('#DeltaR(combined WTA--pp WTA)')
-            h.GetYaxis().SetTitle('Number of jets')
-            setattr(self, name, h)
-            getattr(self, hist_list_name).append(h)
-            
-            name = 'h_matched_dR_pp_wta_pp_std_R{}'.format(R_label)
-            h = ROOT.TH1D(name, name, 90, dr_bins)
-            h.GetXaxis().SetTitle('#DeltaR(pp WTA--pp STD)')
-            h.GetYaxis().SetTitle('Number of jets')
-            setattr(self, name, h)
-            getattr(self, hist_list_name).append(h)
-            
-            name = 'h_matched_dR_combined_wta_combined_std_R{}'.format(R_label)
-            h = ROOT.TH1D(name, name, 90, dr_bins)
-            h.GetXaxis().SetTitle('#DeltaR(combined WTA--combined STD)')
-            h.GetYaxis().SetTitle('Number of jets')
-            setattr(self, name, h)
-            getattr(self, hist_list_name).append(h)
+                name = 'h_matched_dR_pp_std_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h.GetXaxis().SetTitle('#DeltaR(combined#minuspp)')
+                h.GetYaxis().SetTitle('Number of jets')
+                setattr(self, name, h)
+                getattr(self, hist_list_name).append(h)
+                
+                name = 'h_matched_dR_pp_std_combined_wta_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h.GetXaxis().SetTitle('#DeltaR(combined WTA#minuspp STD)')
+                h.GetYaxis().SetTitle('Number of jets')
+                setattr(self, name, h)
+                getattr(self, hist_list_name).append(h)
+                
+                name = 'h_matched_dR_pp_wta_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h.GetXaxis().SetTitle('#DeltaR(combined STD#minusWTA)')
+                h.GetYaxis().SetTitle('Number of jets')
+                setattr(self, name, h)
+                getattr(self, hist_list_name).append(h)
+                
+                name = 'h_matched_dR_pp_wta_combined_wta_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h.GetXaxis().SetTitle('#DeltaR(combined WTA#minusWTA)')
+                h.GetYaxis().SetTitle('Number of jets')
+                setattr(self, name, h)
+                getattr(self, hist_list_name).append(h)
+                
+                name = 'h_matched_dR_pp_wta_pp_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h.GetXaxis().SetTitle('#DeltaR(pp WTA#minusSTD)')
+                h.GetYaxis().SetTitle('Number of jets')
+                setattr(self, name, h)
+                getattr(self, hist_list_name).append(h)
+                
+                name = 'h_matched_dR_combined_wta_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h.GetXaxis().SetTitle('#DeltaR(combined WTA#minuscombined STD)')
+                h.GetYaxis().SetTitle('Number of jets')
+                setattr(self, name, h)
+                getattr(self, hist_list_name).append(h)
             
             # histograms for local energy density related checks
             for observable in ['rho_local', 'mult']:
@@ -581,19 +587,29 @@ class PythiaGenENCThermal(process_base.ProcessBase):
                     getattr(self, hname).Fill(jet_combined.perp()-self.rho*jet_combined.area(), jet_pp.perp())
                     hname = 'h_matched_JetPt_ch_JES_R{}'.format(R_label)
                     getattr(self, hname).Fill(jet_pp.perp(), (jet_combined.perp()-self.rho*jet_combined.area()-jet_pp.perp())/jet_pp.perp())
-                    hname = 'h_matched_dR_pp_std_combined_std_R{}'.format(R_label)
-                    getattr(self, hname).Fill(jet_combined.delta_R(jet_pp))
-                    hname = 'h_matched_dR_pp_std_combined_wta_R{}'.format(R_label)
-                    getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_pp))
-                    hname = 'h_matched_dR_pp_wta_combined_std_R{}'.format(R_label)
-                    getattr(self, hname).Fill(jet_combined.delta_R(jet_pp_wta))
-                    hname = 'h_matched_dR_pp_wta_combined_wta_R{}'.format(R_label)
-                    getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_pp_wta))
-                    hname = 'h_matched_dR_pp_wta_pp_std_R{}'.format(R_label)
-                    getattr(self, hname).Fill(jet_pp_wta.delta_R(jet_pp))
-                    hname = 'h_matched_dR_combined_wta_combined_std_R{}'.format(R_label)
-                    getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_combined))
-
+                    
+                    if (jet_pp.perp() < 40):
+                        continue
+                    
+                    pt_array = [40, 60, 80]
+                    for i in (0, len(pt_array)-2):
+                        pt_low = pt_array[i]
+                        pt_high = pt_array[i+1]
+                        if (jet_pp.perp() > pt_low and jet_pp.perp() < pt_high):
+                            hname = 'h_matched_dR_pp_std_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                            getattr(self, hname).Fill(jet_combined.delta_R(jet_pp))
+                            hname = 'h_matched_dR_pp_std_combined_wta_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                            getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_pp))
+                            hname = 'h_matched_dR_pp_wta_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                            getattr(self, hname).Fill(jet_combined.delta_R(jet_pp_wta))
+                            hname = 'h_matched_dR_pp_wta_combined_wta_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                            getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_pp_wta))
+                            hname = 'h_matched_dR_pp_wta_pp_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                            getattr(self, hname).Fill(jet_pp_wta.delta_R(jet_pp))
+                            hname = 'h_matched_dR_combined_wta_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                            getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_combined))
+                            break
+                        
             if self.debug_level > 0:
                 if len(jets_pp)>0:
                     print('matching efficiency:',nmatched_pp/len(jets_pp),'=',nmatched_pp,'/',len(jets_pp))
