@@ -208,49 +208,49 @@ class PythiaGenENCThermal(process_base.ProcessBase):
             getattr(self, hist_list_name).append(h)
 
             pt_array = [40, 60, 80]
-            dr_bins = linbins(-0.05, 0.5, 110)
+            dr_bins = linbins(-0.05, 0.8, 170)
             
             for i in (0, len(pt_array)-2):
                 pt_low = pt_array[i]
                 pt_high = pt_array[i+1]                        
             
                 name = 'h_matched_dR_pp_std_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h = ROOT.TH1D(name, name, 170, dr_bins)
                 h.GetXaxis().SetTitle('#DeltaR(combined#minuspp)')
                 h.GetYaxis().SetTitle('Number of jets')
                 setattr(self, name, h)
                 getattr(self, hist_list_name).append(h)
                 
                 name = 'h_matched_dR_pp_std_combined_wta_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h = ROOT.TH1D(name, name, 170, dr_bins)
                 h.GetXaxis().SetTitle('#DeltaR(combined WTA#minuspp STD)')
                 h.GetYaxis().SetTitle('Number of jets')
                 setattr(self, name, h)
                 getattr(self, hist_list_name).append(h)
                 
                 name = 'h_matched_dR_pp_wta_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h = ROOT.TH1D(name, name, 170, dr_bins)
                 h.GetXaxis().SetTitle('#DeltaR(combined STD#minusWTA)')
                 h.GetYaxis().SetTitle('Number of jets')
                 setattr(self, name, h)
                 getattr(self, hist_list_name).append(h)
                 
                 name = 'h_matched_dR_pp_wta_combined_wta_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h = ROOT.TH1D(name, name, 170, dr_bins)
                 h.GetXaxis().SetTitle('#DeltaR(combined WTA#minusWTA)')
                 h.GetYaxis().SetTitle('Number of jets')
                 setattr(self, name, h)
                 getattr(self, hist_list_name).append(h)
                 
                 name = 'h_matched_dR_pp_wta_pp_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h = ROOT.TH1D(name, name, 170, dr_bins)
                 h.GetXaxis().SetTitle('#DeltaR(pp WTA#minusSTD)')
                 h.GetYaxis().SetTitle('Number of jets')
                 setattr(self, name, h)
                 getattr(self, hist_list_name).append(h)
                 
                 name = 'h_matched_dR_combined_wta_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                h = ROOT.TH1D(name, name, 110, dr_bins)
+                h = ROOT.TH1D(name, name, 170, dr_bins)
                 h.GetXaxis().SetTitle('#DeltaR(combined WTA#minuscombined STD)')
                 h.GetYaxis().SetTitle('Number of jets')
                 setattr(self, name, h)
@@ -476,15 +476,31 @@ class PythiaGenENCThermal(process_base.ProcessBase):
             self.event = pythia.event
             # print(self.event)
 
+            iev += 1
+
             # charged particle level
             self.parts_pythia_ch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
 
+            # To do: do this for a list of different jet R and all jets in an event
+            jetR_str = str(self.jetR_list[0]).replace('.', '')
+            jet_selector = getattr(self, "jet_selector_R%s" % jetR_str)
+            jet_def = getattr(self, "jet_def_R%s" % jetR_str)
+            track_selector_ch = getattr(self, "track_selector_ch")
+            
+            cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
+            jets_pp = fj.sorted_by_pt( jet_selector(cs_pp.inclusive_jets()) )
+                
+            if (len(jets_pp) == 0 or jets_pp[0].perp() < 40): # skip if event doesn't have a 40 GeV charged jet
+                continue 
+            self.parts_pythia_ch_jet = jets_pp[0].constituents() # only including particles from leading pp jets for now
+            self.jet_pp = jets_pp[0]
+            
             # Add thermal particles to the list
             # NB: the thermal tracks are each stored with a unique user_index < 0
             self.fj_particles_combined_beforeCS = self.thermal_generator.load_event()
           
             # Add pythia particles to the list
-            [self.fj_particles_combined_beforeCS.push_back(p) for p in self.parts_pythia_ch]
+            [self.fj_particles_combined_beforeCS.push_back(p) for p in self.parts_pythia_ch_jet]
 
             if self.debug_level > 1:
                 for p in self.fj_particles_combined_beforeCS:
@@ -493,15 +509,82 @@ class PythiaGenENCThermal(process_base.ProcessBase):
             self.constituent_subtractor = CEventSubtractor(max_distance=self.max_distance, alpha=self.alpha, max_eta=self.max_eta, bge_rho_grid_size=self.bge_rho_grid_size, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area, distance_type=fjcontrib.ConstituentSubtractor.deltaR)
             self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS)
 
-            self.rho = self.constituent_subtractor.bge_rho.rho() 
+            self.rho = self.constituent_subtractor.bge_rho.rho()
 
             # Some "accepted" events don't survive hadronization step -- keep track here
             self.hNevents.Fill(0)
 
-            self.analyze_jets()
+            self.analyze_one_jet()
 
-            iev += 1
+    #---------------------------------------------------------------
+    # Take pp leading jet, embed it into thermal, and assume the combined leading jet is matched to the pp leading jet
+    #---------------------------------------------------------------
+    def analyze_one_jet(self):
+            
+        jetR_str = str(self.jetR_list[0]).replace('.', '')
+        jet_def = getattr(self, "jet_def_R%s" % jetR_str)
+        jet_def_wta = getattr(self, "jet_def_wta_R%s" % jetR_str)
+        reclusterer_wta = fjcontrib.Recluster(jet_def_wta)
+        track_selector_ch = getattr(self, "track_selector_ch")
+        jet_selector = getattr(self, "jet_selector_R%s" % jetR_str)
+        cs_combined = fj.ClusterSequenceArea(track_selector_ch(self.fj_particles_combined_beforeCS), jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
+               
+        jet_pp = self.jet_pp
+        jet_pp_wta = reclusterer_wta.result(jet_pp)
 
+        jets_combined = fj.sorted_by_pt( jet_selector(cs_combined.inclusive_jets()) )        
+        # find the combined jet with highest rhoA subtracted pT
+        highest_index = 0
+        highest_pt_sub = 0.
+        for i in range(0, len(jets_combined)):
+            pt_sub = jets_combined[i].perp()-self.rho*jets_combined[i].area()
+            if (pt_sub > highest_pt_sub):
+                # print("i:", i, ", pt:", jets_combined[i].perp(), ", pt_sub > highest_pt_sub:", pt_sub, ">", highest_pt_sub)
+                highest_pt_sub = pt_sub
+                highest_index = i
+                
+        # print("highest index:", highest_index)
+        if (highest_pt_sub < 5):
+            return
+        
+        jet_combined = jets_combined[highest_index] # assume the combined leading jet is matched to the pp leading jet
+        jet_combined_wta = reclusterer_wta.result(jet_combined)
+        
+        R_label = str(self.jetR_list[0]).replace('.', '')# + 'Scaled'
+
+        #-------------------------------------------------------------
+        # fill jet histograms
+        hname = 'h_JetPt_ch_pp_R{}'.format(R_label)
+        getattr(self, hname).Fill(jet_pp.perp())
+
+        hname = 'h_JetPt_ch_combined_R{}'.format(R_label)
+        getattr(self, hname).Fill(jet_combined.perp()-self.rho*jet_combined.area())
+        
+        hname = 'h_matched_JetPt_ch_combined_vs_pp_R{}'.format(R_label)
+        getattr(self, hname).Fill(jet_combined.perp()-self.rho*jet_combined.area(), jet_pp.perp())
+        
+        hname = 'h_matched_JetPt_ch_JES_R{}'.format(R_label)
+        getattr(self, hname).Fill(jet_pp.perp(), (jet_combined.perp()-self.rho*jet_combined.area()-jet_pp.perp())/jet_pp.perp())
+                
+        pt_array = [40, 60, 80]
+        for i in (0, len(pt_array)-2):
+            pt_low = pt_array[i]
+            pt_high = pt_array[i+1]
+            if (jet_pp.perp() > pt_low and jet_pp.perp() < pt_high):
+                hname = 'h_matched_dR_pp_std_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                getattr(self, hname).Fill(jet_combined.delta_R(jet_pp))
+                hname = 'h_matched_dR_pp_std_combined_wta_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_pp))
+                hname = 'h_matched_dR_pp_wta_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                getattr(self, hname).Fill(jet_combined.delta_R(jet_pp_wta))
+                hname = 'h_matched_dR_pp_wta_combined_wta_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_pp_wta))
+                hname = 'h_matched_dR_pp_wta_pp_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                getattr(self, hname).Fill(jet_pp_wta.delta_R(jet_pp))
+                hname = 'h_matched_dR_combined_wta_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
+                getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_combined))
+                break
+                    
     #---------------------------------------------------------------
     # Find jets, do matching between levels, and fill histograms & trees
     #---------------------------------------------------------------
@@ -967,9 +1050,8 @@ class PythiaGenENCThermal(process_base.ProcessBase):
         #     for h in getattr(self, hist_list_name):
         #         h.Scale(scale_f)
 
-        print("N total final events:", int(self.hNevents.GetBinContent(1)), "with",
-              int(pythia.info.nAccepted() - self.hNevents.GetBinContent(1)),
-              "events rejected at hadronization step")
+        print("N total final events:", int(self.hNevents.GetBinContent(1)))
+        print("N rejected events:", int(pythia.info.nAccepted() - self.hNevents.GetBinContent(1)))
         self.hNevents.SetBinError(1, 0)
 
 ################################################################
