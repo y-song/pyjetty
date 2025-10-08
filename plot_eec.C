@@ -1,13 +1,13 @@
-// ROOT macro to make quark-gluon jet plots
-// Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
-
 #include <typeinfo>
 #include <iostream>
 #include <string>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <TStyle.h> // location: /global/cfs/cdirs/alice/heppy_soft/15-09-2024/yasp/software/root/default/include/
 #include <TCanvas.h>
 #include <TH1.h>
+#include <TH2.h>
 #include <TLegend.h>
 #include <TLine.h>
 #include <TFile.h>
@@ -119,14 +119,29 @@ void addLegendInfo(TLegend *l, TString ptbin)
     l->SetTextSize(0.045);
     l->AddEntry("NULL", "PYTHIA8 leading jets + thermal", "h");
     l->AddEntry("NULL", "#sqrt{#it{s}} = 5.02 TeV, #hat{#it{p}}_{T} > 30 GeV", "h");
-    l->AddEntry("NULL", "charged jets, anti-#it{k}_{T}, #it{R} = 0.2", "h");
+    l->AddEntry("NULL", "charged jets, anti-#it{k}_{T}, #it{R} = 4", "h");
     l->AddEntry("NULL", ptbin, "h");
     l->SetTextSize(0.037);
     l->SetBorderSize(0);
     l->SetFillStyle(0); // turn legend transparent
 }
 
-void plot()
+TH1 *DivideByBinWidth(TH1 *input_hist)
+{
+    TH1 *output_hist = (TH1 *)input_hist->Clone(Form("%s_clone", input_hist->GetName()));
+    for (int ibin = 1; ibin < input_hist->GetNbinsX() + 1; ibin++)
+    {
+        double bincontent = input_hist->GetBinContent(ibin);
+        double binerror = input_hist->GetBinError(ibin);
+        double binwidth = input_hist->GetBinWidth(ibin);
+
+        output_hist->SetBinContent(ibin, bincontent/binwidth);
+        output_hist->SetBinError(ibin, binerror/binwidth);
+    }
+    return output_hist;
+}
+
+void plot_eec(string pt_min, string pt_max)
 {
 
     // gROOT->SetBatch(); //prevents plots from showing up
@@ -139,29 +154,24 @@ void plot()
     Double_t marker_size = 1.5;
     Double_t colors[16] = {kRed, kGreen + 2, kBlue, kRed + 1, kGreen + 1, kBlue + 1, kRed + 2, kGreen + 2, kBlue + 2, kRed + 3, kGreen + 3, kBlue + 3, kOrange + 1, kViolet + 1, kYellow + 1, kCyan + 1};
 
-    // CONTOL VARIABLES HERE
-    int plot_case = 1;
-
     // string one("");
-    const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/AnalysisResultsR02_jets_in_thermal.root";
+    const char infile[] = "/global/cfs/cdirs/alice/youqi/AnalysisResultsR04_eec_jets_in_thermal.root";
     TFile *f = new TFile(TString(infile), "READ");
-    std::string add_name = "_jets_in_thermal";
+    std::string add_name = "_test";
     std::cout << "output name will be " << add_name << std::endl;
     std::string outdir = "";
     std::string outfile = outdir + "AnalysisResultsOut" + add_name + ".root";
     TFile *f_out = new TFile(outfile.c_str(), "RECREATE");
 
-    const int numjetaxes = 2;
+    const int numjetaxes = 3;
     const int n_bins = 2;
-    std::string pt_list[] = {"40", "60", "80"};
-    std::string jetR_list[] = {"02"};
-    const std::string jetaxis_names[] = {"pp_std", "pp_wta"};
+    std::string jetR_list[] = {"04"};
+    const std::string jetaxis_names[] = {"jet", "jetcone", "wta_jetcone"};
+    const std::string hist_names[] = {"", "jetcone0.4_", "wta_jetcone0.4_"};
     std::cout << "checkpoint1" << std::endl;
 
     for (int i = 0; i < n_bins; i++)
     {
-        string pt_min = pt_list[i];
-        string pt_max = pt_list[i + 1];
         cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
 
         for (std::string jetR : jetR_list)
@@ -174,9 +184,9 @@ void plot()
 
             for (int iobs = 0; iobs < numjetaxes; iobs++)
             {
-                const std::string h1_name = "h_matched_dR_" + jetaxis_names[iobs] + "_combined_std_R" + jetR + "_" + pt_min + "pT" + pt_max;
-                const std::string h2_name = "h_matched_dR_" + jetaxis_names[iobs] + "_combined_wta_R" + jetR + "_" + pt_min + "pT" + pt_max;
-                const std::string h3_name = "h_matched_dR_pp_wta_pp_std_R" + jetR + "_" + pt_min + "pT" + pt_max;
+                const std::string h1_name = "h_" + hist_names[iobs] + "matched_ENC2_ss_JetPt_ch_R" + jetR + "_trk10";
+                const std::string h2_name = "h_" + hist_names[iobs] + "matched_ENC2_sb_JetPt_ch_R" + jetR + "_trk10";
+                const std::string h3_name = "h_" + hist_names[iobs] + "matched_ENC2_bb_JetPt_ch_R" + jetR + "_trk10";
 
                 h1_names.push_back(h1_name);
                 h2_names.push_back(h2_name);
@@ -185,58 +195,72 @@ void plot()
             cout << "checkpoint2" << endl;
 
             // define pt related variables
-            TString ptbin = pt_min + " < #it{p}_{T}^{ch. jet} < " + pt_max + " GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5";//;TString::Format("%s < #it{p}_{T}^{ch. jet} < %s GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
+            TString ptbin = pt_min + " < #it{p}_{T}^{ch. jet} < " + pt_max + " GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5"; //;TString::Format("%s < #it{p}_{T}^{ch. jet} < %s GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
             std::string pdf_outdir = "";
 
             //-------------------------------------------------//
-            std::vector<TH1 *> h1_vector;
-            std::vector<TH1 *> h2_vector;
-            std::vector<TH1 *> h3_vector;
+            // find D0 reconstruction through charm
+            std::vector<TH2 *> h1_vector;
+            std::vector<TH2 *> h2_vector;
+            std::vector<TH2 *> h3_vector;
 
             for (int iobs = 0; iobs < numjetaxes; iobs++)
             {
                 cout << h1_names[iobs].c_str() << endl;
-                h1_vector.push_back((TH1 *)f->Get(h1_names[iobs].c_str()));
-                h2_vector.push_back((TH1 *)f->Get(h2_names[iobs].c_str()));
-                h3_vector.push_back((TH1 *)f->Get(h3_names[iobs].c_str()));
+                h1_vector.push_back((TH2 *)f->Get(h1_names[iobs].c_str()));
+                h2_vector.push_back((TH2 *)f->Get(h2_names[iobs].c_str()));
+                h3_vector.push_back((TH2 *)f->Get(h3_names[iobs].c_str()));
             }
             cout << "checkpoint3" << endl;
 
-            std::vector<TH1 *> h1_clones;
-            std::vector<TH1 *> h2_clones;
-            std::vector<TH1 *> h3_clones;
+            std::vector<TH2 *> h1_clones;
+            std::vector<TH2 *> h2_clones;
+            std::vector<TH2 *> h3_clones;
 
             for (int iobs = 0; iobs < numjetaxes; iobs++)
             {
-                h1_clones.push_back((TH1 *)h1_vector[iobs]->Clone(Form("%s_clone", h1_names[iobs].c_str())));
-                h2_clones.push_back((TH1 *)h2_vector[iobs]->Clone(Form("%s_clone", h2_names[iobs].c_str())));
-                h3_clones.push_back((TH1 *)h3_vector[iobs]->Clone(Form("%s_clone", h3_names[iobs].c_str())));
+                h1_clones.push_back((TH2 *)h1_vector[iobs]->Clone(Form("%s_clone", h1_names[iobs].c_str())));
+                h2_clones.push_back((TH2 *)h2_vector[iobs]->Clone(Form("%s_clone", h2_names[iobs].c_str())));
+                h3_clones.push_back((TH2 *)h3_vector[iobs]->Clone(Form("%s_clone", h3_names[iobs].c_str())));
+            }
+
+            for (int iobs = 0; iobs < numjetaxes; iobs++)
+            {
+                h1_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max)); // apply cut on jet pt
+                h2_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
+                h3_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
             }
 
             cout << "checkpoint4" << endl;
+
+            // Project onto observable axis
+            std::vector<TH1D *> h1_projs;
+            std::vector<TH1D *> h2_projs;
+            std::vector<TH1D *> h3_projs;
+
+            for (int iobs = 0; iobs < numjetaxes; iobs++)
+            {
+                h1_projs.push_back(h1_clones[iobs]->ProjectionY());
+                h2_projs.push_back(h2_clones[iobs]->ProjectionY());
+                h3_projs.push_back(h3_clones[iobs]->ProjectionY());
+            }
 
             // Set to appropriate name
             std::string hname;
             for (int iobs = 0; iobs < numjetaxes; iobs++)
             {
-                hname = h1_clones[iobs]->GetName();
+                hname = h1_projs[iobs]->GetName();
                 hname += "_pt" + pt_min + "-" + pt_max;
-                h1_clones[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
-                hname = h2_clones[iobs]->GetName();
+                h1_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
+                hname = h2_projs[iobs]->GetName();
                 hname += "_pt" + pt_min + "-" + pt_max;
-                h2_clones[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
-                hname = h3_clones[iobs]->GetName();
+                h2_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
+                hname = h3_projs[iobs]->GetName();
                 hname += "_pt" + pt_min + "-" + pt_max;
-                h3_clones[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
+                h3_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
             }
 
             // Rebin
-            int n_obs_bins = 13;
-            double obs_bins[14] = {0.0001, 0.00020892961308540387, 0.0004365158322401661, 0.0009120108393559096,
-                                   0.0019054607179632482, 0.005754399373371567, 0.017378008287493762, 0.03630780547701014,
-                                   0.07585775750291836, 0.15848931924611143, 0.3311311214825911, 0.47863009232263853, 0.6918309709189363, 1.0};
-
-            cout << "About to rebin" << endl;
             std::vector<TH1 *> h1;
             std::vector<TH1 *> h2;
             std::vector<TH1 *> h3;
@@ -244,23 +268,21 @@ void plot()
             cout << "checkpoint6" << endl;
             for (int iobs = 0; iobs < numjetaxes; iobs++)
             {
-                std::string h1_newname = h1_clones[iobs]->GetName();
-                std::string h2_newname = h2_clones[iobs]->GetName();
-                std::string h3_newname = h3_clones[iobs]->GetName();
+                std::string h1_newname = h1_projs[iobs]->GetName();
+                std::string h2_newname = h2_projs[iobs]->GetName();
+                std::string h3_newname = h3_projs[iobs]->GetName();
 
-                h1.push_back((TH1 *)h1_clones[iobs]->Clone(h1_newname.c_str())); // h1_newname + "rebin").c_str() );
-                h2.push_back((TH1 *)h2_clones[iobs]->Clone(h2_newname.c_str())); // h2_newname + "rebin").c_str() );
-                h3.push_back((TH1 *)h3_clones[iobs]->Clone(h3_newname.c_str()));
+                h1.push_back(DivideByBinWidth( (TH1 *)h1_projs[iobs]->Clone(h1_newname.c_str()) )); // h1_newname + "rebin").c_str() );
+                h2.push_back(DivideByBinWidth( (TH1 *)h2_projs[iobs]->Clone(h2_newname.c_str()) )); // h2_newname + "rebin").c_str() );
+                h3.push_back(DivideByBinWidth( (TH1 *)h3_projs[iobs]->Clone(h3_newname.c_str()) ));
             }
-            // TH1* hD0 = (TH1*) hD0_proj->Rebin(n_obs_bins, (hname + "rebin").c_str(), obs_bins);
-            cout << "Rebin done" << endl;
 
             // Format color and style
-            int markercolor1 = kRed; // 1
+            int markercolor1 = kBlue; // 1
             int markerstyle1 = kFullCircle;
-            int markercolor2 = kViolet + 2; // 2
+            int markercolor2 = kGreen + 2;
             int markerstyle2 = 33;
-            int markercolor3 = kGreen + 2; // light
+            int markercolor3 = kRed;
             int markerstyle3 = 21;
             int markercolor4 = kMagenta - 7; // inclusive
             int markerstyle4 = 29;
@@ -274,39 +296,28 @@ void plot()
                 TCanvas *c = new TCanvas();
                 ProcessCanvas(c);
                 c->cd();
+                gPad->SetLogx();
 
-                TLegend *l = new TLegend(0.5097168, 0.400741, 0.8562155, 0.8885185, ""); //(0.17, 0.4, 0.5, 0.53);
+                TLegend *l = new TLegend(0.17, 0.4, 0.5, 0.88);
 
-                if (plot_case > 0)
-                { // no D0 reconstruction
-                    addLegendInfo(l, ptbin);
-                    FormatHist(l, h1[iobs], "Combined STD", markercolor1, markerstyle1);
-                    FormatHist(l, h2[iobs], "Combined WTA", markercolor2, markerstyle2);
-                    double arr_of_maxes[] = {h1[iobs]->GetMaximum(), h2[iobs]->GetMaximum()};
-                    double &maxy = *std::max_element(arr_of_maxes, arr_of_maxes + 2); // bc there are 4 elements in arr_of_maxes
-                    cout << "the max is " << maxy << endl;
-                    maxy *= 1.2;
-                    h1[iobs]->SetMaximum(maxy);
-                    h1[iobs]->GetXaxis()->SetRangeUser(0, 0.5);
-                    if (iobs == 0)
-                    {
-                        h1[iobs]->GetXaxis()->SetTitle("#DeltaR(pp STD)");
-                        FormatHist(l, h3[iobs], "pp WTA", markercolor3, markerstyle3);
-                    }
-                    else if (iobs == 1)
-                    {
-                        h1[iobs]->GetXaxis()->SetTitle("#DeltaR(pp WTA)");
-                        FormatHist(l, h3[iobs], "pp STD", markercolor3, markerstyle3);
-                    }
-                }
-                cout << "checkpoint9" << endl;
+                addLegendInfo(l, ptbin);
+                FormatHist(l, h1[iobs], "sig-sig", markercolor1, markerstyle1);
+                FormatHist(l, h2[iobs], "sig-bkg", markercolor2, markerstyle2);
+                FormatHist(l, h3[iobs], "bkg-bkg", markercolor3, markerstyle3);
+                double arr_of_maxes[] = {h1[iobs]->GetMaximum(), h2[iobs]->GetMaximum()};
+                double &maxy = *std::max_element(arr_of_maxes, arr_of_maxes + 2); // bc there are 4 elements in arr_of_maxes
+                cout << "the max is " << maxy << endl;
+                maxy *= 1.2;
+                h1[iobs]->SetMaximum(maxy);
+                h1[iobs]->GetXaxis()->SetRangeUser(0.005, 1);
+                h2[iobs]->GetXaxis()->SetRangeUser(0.005, 1);
+                h3[iobs]->GetXaxis()->SetRangeUser(0.005, 1);
+                h1[iobs]->GetYaxis()->SetRangeUser(0, 80000);
+                h1[iobs]->GetXaxis()->SetTitle("#it{R}_{L}");
 
-                if (plot_case > 0)
-                { // no D0 reconstruction
-                    h1[iobs]->Draw("L");
-                    h2[iobs]->Draw("L same");
-                    h3[iobs]->Draw("L same");
-                }
+                h1[iobs]->Draw("L");
+                h2[iobs]->Draw("L same");
+                h3[iobs]->Draw("L same");
 
                 // draw legend
                 l->Draw("same");
