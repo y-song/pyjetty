@@ -1,0 +1,19 @@
+# processing parameters
+jetR: [0.2]
+
+debug_level: 0
+
+rm_trk_min_pt: False
+
+thrd: [1.0]
+
+coneR: [0.2]
+
+constituent_subtractor:
+  max_distance: 0.1
+  main_R_max: 0.1
+  alpha: 0
+  max_eta: 0.9
+  bge_rho_grid_size: 1.0
+  max_pt_correct: 100
+  ghost_area: 0.01
