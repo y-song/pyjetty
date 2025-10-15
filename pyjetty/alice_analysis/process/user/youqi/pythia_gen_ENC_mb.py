@@ -16,6 +16,9 @@ import os
 import array
 import numpy as np
 import math
+import time
+import sys
+import pandas
 
 from pyjetty.mputils import *
 
@@ -26,8 +29,8 @@ import pythiaext
 import ecorrel
 
 from pyjetty.alice_analysis.process.base import process_base
-from pyjetty.alice_analysis.process.base import thermal_generator
 from pyjetty.mputils.csubtractor import CEventSubtractor
+from pyjetty.alice_analysis.process.base import process_io
 
 # Prevent ROOT from stealing focus when plotting
 ROOT.gROOT.SetBatch(True)
@@ -46,14 +49,14 @@ def logbins(xmin, xmax, nbins):
   return arr
 
 ################################################################
-class PythiaGenENCThermal(process_base.ProcessBase):
+class PythiaGenENCMB(process_base.ProcessBase):
 
     #---------------------------------------------------------------
     # Constructor
     #---------------------------------------------------------------
     def __init__(self, input_file='', config_file='', output_dir='', debug_level=0, args=None, **kwargs):
 
-        super(PythiaGenENCThermal, self).__init__(
+        super(PythiaGenENCMB, self).__init__(
             input_file, config_file, output_dir, debug_level, **kwargs)
 
         # Call base class initialization
@@ -78,16 +81,6 @@ class PythiaGenENCThermal(process_base.ProcessBase):
         else:
             self.rm_trk_min_pt = False
 
-        if 'jet_matching_distance' in config:
-            self.jet_matching_distance = config['jet_matching_distance']
-        else:
-            self.jet_matching_distance = 0.6 # default to 0.6
-
-        if 'mc_fraction_threshold' in config:
-            self.mc_fraction_threshold = config['mc_fraction_threshold']
-        else:
-            self.mc_fraction_threshold = 0.5 # default to 0.5
-
         # perp cone settings
         if 'static_perpcone' in config:
             self.static_perpcone = config['static_perpcone']
@@ -106,16 +99,6 @@ class PythiaGenENCThermal(process_base.ProcessBase):
         self.deta_cut = -9999
         self.npoint = 2
         self.npower = 1
-
-        # thermal background
-        if 'thermal_model' in config:
-            self.thermal_model = True
-            beta = config['thermal_model']['beta']
-            N_avg = config['thermal_model']['N_avg']
-            sigma_N = config['thermal_model']['sigma_N']
-            self.thermal_generator = thermal_generator.ThermalGenerator(N_avg, sigma_N, beta)
-        else:
-            self.thermal_model = False
 
     #---------------------------------------------------------------
     # Main processing function
@@ -138,6 +121,7 @@ class PythiaGenENCThermal(process_base.ProcessBase):
         print()
 
         self.init_jet_tools()
+        self.process_data()
         self.analyze_events(pythia)
         pythia.stat()
         print()
@@ -478,9 +462,10 @@ class PythiaGenENCThermal(process_base.ProcessBase):
     #---------------------------------------------------------------
     def analyze_events(self, pythia):
         
+        print("Nevt(PbPb):", self.nEvents)
         iev = 0  # Event loop count
 
-        while iev < self.nev:
+        while iev < self.nEvents:
             if self.debug_level > 0:
                 print('ievt', iev)
             if iev % 100 == 0:
@@ -511,10 +496,10 @@ class PythiaGenENCThermal(process_base.ProcessBase):
             self.parts_pythia_ch_jet = jets_pp[0].constituents() # only including particles from leading pp jets for now
             self.jet_pp = jets_pp[0]
             
-            # Add thermal particles to the list
-            # NB: the thermal tracks are each stored with a unique user_index < 0
-            self.fj_particles_combined_beforeCS = self.thermal_generator.load_event()
-          
+            # Add PbPb particles to the list
+            # NB: the PbPb tracks are each stored with a unique user_index < 0
+            self.fj_particles_combined_beforeCS = self.df_fjparticles.iloc[iev]
+            
             # Add pythia particles to the list
             [self.fj_particles_combined_beforeCS.push_back(p) for p in self.parts_pythia_ch_jet]
 
@@ -533,7 +518,7 @@ class PythiaGenENCThermal(process_base.ProcessBase):
             self.analyze_one_jet()
 
     #---------------------------------------------------------------
-    # Take pp leading jet, embed it into thermal, and assume the combined leading jet is matched to the pp leading jet
+    # Take pp leading jet, embed it into PbPb, and assume the combined leading jet is matched to the pp leading jet
     #---------------------------------------------------------------
     def analyze_one_jet(self):
             
@@ -555,7 +540,6 @@ class PythiaGenENCThermal(process_base.ProcessBase):
         for i in range(0, len(jets_combined)):
             pt_sub = jets_combined[i].perp()-self.rho*jets_combined[i].area()
             if (pt_sub > highest_pt_sub):
-                # print("i:", i, ", pt:", jets_combined[i].perp(), ", pt_sub > highest_pt_sub:", pt_sub, ">", highest_pt_sub)
                 highest_pt_sub = pt_sub
                 highest_index = i
                 
@@ -613,120 +597,6 @@ class PythiaGenENCThermal(process_base.ProcessBase):
         self.fill_matched_jets(jet_combined, jet_pp, self.jetR_list[0])
         for coneR in self.coneR_list:
             self.fill_matched_jetcone(jet_combined, jet_combined_wta, jet_pp, self.jetR_list[0], coneR)
-                 
-    #---------------------------------------------------------------
-    # Find jets, do matching between levels, and fill histograms & trees
-    #---------------------------------------------------------------
-    def analyze_jets(self):
-        # Loop over jet radii
-        for jetR in self.jetR_list:
-
-            jetR_str = str(jetR).replace('.', '')
-            jet_selector = getattr(self, "jet_selector_R%s" % jetR_str)
-            jet_def = getattr(self, "jet_def_R%s" % jetR_str)
-            track_selector_ch = getattr(self, "track_selector_ch")
-            jet_def_wta = getattr(self, "jet_def_wta_R%s" % jetR_str)
-            reclusterer_wta =  fjcontrib.Recluster(jet_def_wta)
-
-            cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
-            jets_pp = fj.sorted_by_pt( jet_selector(cs_pp.inclusive_jets()) )
-            jets_pp_wta = []
-            for jet_pp in jets_pp:
-                jets_pp_wta.append(reclusterer_wta.result(jet_pp))
-
-            cs_combined = fj.ClusterSequenceArea(track_selector_ch(self.fj_particles_combined_beforeCS), jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
-            jets_combined = fj.sorted_by_pt( jet_selector(cs_combined.inclusive_jets()) )
-            jets_combined_wta = []
-            for jet_combined in jets_combined:
-                jets_combined_wta.append(reclusterer_wta.result(jet_combined))
-            
-            #-------------------------------------------------------------
-            # match pp (pythia) jets to combined jets
-            jets_combined_matched_to_pp = []
-            for jet_pp in jets_pp:
-                matched_jet_combined = []
-                for index_jet_combined, jet_combined in enumerate(jets_combined):
-                    if (index_jet_combined in jets_combined_matched_to_pp):
-                        continue
-                    mc_fraction = self.mc_fraction(jet_pp, jet_combined)
-                    if (mc_fraction > self.mc_fraction_threshold) and (self.is_geo_matched(jet_combined, jet_pp, jetR)):
-                        matched_jet_combined.append(index_jet_combined)
-                    
-                if (len(matched_jet_combined)!=1):
-                    jets_combined_matched_to_pp.append(-1) 
-                else:
-                    jets_combined_matched_to_pp.append(matched_jet_combined[0]) # save matched combined jet index
-                    if self.debug_level > 0:
-                        print('matched pp jet R',jetR,'pt',jet_pp.perp(),'phi',jet_pp.phi(),'eta',jet_pp.eta())
-                        print('matched combined jet index',matched_jet_combined[0],'pt',jets_combined[matched_jet_combined[0]].perp(),'phi',jets_combined[matched_jet_combined[0]].phi(),'eta',jets_combined[matched_jet_combined[0]].eta())                    
-
-            R_label = str(jetR).replace('.', '')# + 'Scaled'
-
-            #-------------------------------------------------------------
-            # loop over jets and fill EEC histograms with jet constituents
-            for jet_pp in jets_pp:
-                hname = 'h_JetPt_ch_pp_R{}'.format(R_label)
-                getattr(self, hname).Fill(jet_pp.perp())
-                # hname = 'h_ENC{{}}_JetPt_ch_R{}_{{}}'.format(R_label)
-                # self.fill_jet_histograms(hname, jet_pp)
-
-            for jet_combined in jets_combined:
-                hname = 'h_JetPt_ch_combined_R{}'.format(R_label)
-                getattr(self, hname).Fill(jet_combined.perp()-self.rho*jet_combined.area())
-                # hname = 'h_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
-                # self.fill_jet_histograms(hname, jet_combined)
-
-            #-------------------------------------------------------------
-            # loop over matched jets and fill EEC histograms with jet constituents
-            nmatched_pp = 0
-            for index_jet_pp, jet_pp in enumerate(jets_pp):
-                jet_pp_wta = jets_pp_wta[index_jet_pp]
-                imatched_jet_combined = jets_combined_matched_to_pp[index_jet_pp]
-                if imatched_jet_combined > -1:
-                    nmatched_pp += 1
-                    jet_combined = jets_combined[imatched_jet_combined]
-                    jet_combined_wta = jets_combined_wta[imatched_jet_combined]
-                    self.fill_matched_jets(jet_combined, jet_pp, jetR)
-                    # for coneR in self.coneR_list:
-                    #     self.fill_matched_jetcone(jet_combined, jet_pp, jetR, coneR)
-                    #     if coneR == jetR:
-                    #         use_constituents = True
-                    #     else:
-                    #         use_constituents = False
-                    #     self.fill_matched_perpcone(jet_combined, jet_pp, jetR, coneR, use_constituents)
-                        
-                    hname = 'h_matched_JetPt_ch_combined_vs_pp_R{}'.format(R_label)
-                    getattr(self, hname).Fill(jet_combined.perp()-self.rho*jet_combined.area(), jet_pp.perp())
-                    hname = 'h_matched_JetPt_ch_JES_R{}'.format(R_label)
-                    getattr(self, hname).Fill(jet_pp.perp(), (jet_combined.perp()-self.rho*jet_combined.area()-jet_pp.perp())/jet_pp.perp())
-                    
-                    if (jet_pp.perp() < 40):
-                        continue
-                    
-                    pt_array = [40, 60, 80]
-                    for i in (0, len(pt_array)-2):
-                        pt_low = pt_array[i]
-                        pt_high = pt_array[i+1]
-                        if (jet_pp.perp() > pt_low and jet_pp.perp() < pt_high):
-                            hname = 'h_matched_dR_pp_std_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                            getattr(self, hname).Fill(jet_combined.delta_R(jet_pp))
-                            hname = 'h_matched_dR_pp_std_combined_wta_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                            getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_pp))
-                            hname = 'h_matched_dR_pp_wta_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                            getattr(self, hname).Fill(jet_combined.delta_R(jet_pp_wta))
-                            hname = 'h_matched_dR_pp_wta_combined_wta_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                            getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_pp_wta))
-                            hname = 'h_matched_dR_pp_wta_pp_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                            getattr(self, hname).Fill(jet_pp_wta.delta_R(jet_pp))
-                            hname = 'h_matched_dR_combined_wta_combined_std_R{}_{}pT{}'.format(R_label, pt_low, pt_high)
-                            getattr(self, hname).Fill(jet_combined_wta.delta_R(jet_combined))
-                            break
-                        
-            if self.debug_level > 0:
-                if len(jets_pp)>0:
-                    print('matching efficiency:',nmatched_pp/len(jets_pp),'=',nmatched_pp,'/',len(jets_pp))
-                else:
-                    print('matching efficiency:',nmatched_pp,'/',len(jets_pp))
     
     #---------------------------------------------------------------
     # Fill jet constituents for unmatched jets
@@ -1097,6 +967,22 @@ class PythiaGenENCThermal(process_base.ProcessBase):
         print("N total final events:", int(self.hNevents.GetBinContent(1)))
         print("N rejected events:", int(pythia.info.nAccepted() - self.hNevents.GetBinContent(1)))
         self.hNevents.SetBinError(1, 0)
+        
+    def process_data(self):
+    
+        self.start_time = time.time()
+    
+        # ------------------------------------------------------------------------
+        
+        # Use IO helper class to convert detector-level ROOT TTree into
+        # a SeriesGroupBy object of fastjet particles per event
+        print('--- {} seconds ---'.format(time.time() - self.start_time))
+        io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle', is_pp=False)
+        self.df_fjparticles = io.load_data(m=self.m, offset_indices=True)
+        self.nEvents = len(self.df_fjparticles.index)
+        self.nTracks = len(io.track_df.index)
+
+        print('--- {} seconds ---'.format(time.time() - self.start_time))
 
 ################################################################
 if __name__ == '__main__':
@@ -1110,6 +996,10 @@ if __name__ == '__main__':
                         help="Filename for the (unscaled) generated particle ROOT TTree")
     parser.add_argument('-c', '--config_file', action='store', type=str, default='config/analysis_config.yaml',
                         help="Path of config file for observable configurations")
+    parser.add_argument('-f', '--inputFile', action='store',
+                      type=str, metavar='inputFile',
+                      default='AnalysisResults.root',
+                      help='Path of ROOT file containing TTrees')
 
     args = parser.parse_args()
 
@@ -1118,9 +1008,5 @@ if __name__ == '__main__':
         print('File \"{0}\" does not exist! Exiting!'.format(args.configFile))
         sys.exit(0)
 
-    # Have at least 1 event
-    if args.nev < 1:
-        args.nev = 1
-
-    process = PythiaGenENCThermal(config_file=args.config_file, output_dir=args.output_dir, args=args)
+    process = PythiaGenENCMB(input_file=args.inputFile, config_file=args.config_file, output_dir=args.output_dir, args=args)
     process.pythia_parton_hadron(args)
