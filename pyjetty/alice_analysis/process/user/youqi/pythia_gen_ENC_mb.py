@@ -465,11 +465,11 @@ class PythiaGenENCMB(process_base.ProcessBase):
         print("Nevt(PbPb):", self.nEvents)
         iev = 0  # Event loop count
 
-        while iev < self.nEvents:
+        while iev < self.nEvents - 1:
             if self.debug_level > 0:
                 print('ievt', iev)
             if iev % 100 == 0:
-                print('ievt', iev)
+                print('ievt:', iev)
 
             if not pythia.next():
                 continue
@@ -495,7 +495,8 @@ class PythiaGenENCMB(process_base.ProcessBase):
                 continue 
             self.parts_pythia_ch_jet = jets_pp[0].constituents() # only including particles from leading pp jets for now
             self.jet_pp = jets_pp[0]
-            
+            print("ievt:", iev)
+
             # Add PbPb particles to the list
             # NB: the PbPb tracks are each stored with a unique user_index < 0
             self.fj_particles_combined_beforeCS = self.df_fjparticles.iloc[iev]
