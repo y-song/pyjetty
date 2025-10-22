@@ -141,7 +141,7 @@ TH1 *DivideByBinWidth(TH1 *input_hist)
     return output_hist;
 }
 
-void plot_eec_perpcone(string pt_min, string pt_max)
+void plot_eec_mbcone(string pt_min, string pt_max)
 {
 
     // gROOT->SetBatch(); //prevents plots from showing up
@@ -158,7 +158,7 @@ void plot_eec_perpcone(string pt_min, string pt_max)
     // const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/AnalysisResults.root";
     const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/44272506/AnalysisResultsFinal.root";
     TFile *f = new TFile(TString(infile), "READ");
-    std::string add_name = "_PbPb_embed_perpcone";
+    std::string add_name = "_PbPb_embed_mbcone";
     std::cout << "output name will be " << add_name << std::endl;
     std::string outdir = "";
     std::string outfile = outdir + "AnalysisResultsOut" + add_name + ".root";
@@ -167,7 +167,7 @@ void plot_eec_perpcone(string pt_min, string pt_max)
     const int numjetaxes = 3;
     const string jetR = "02";
     const std::string jetaxis_names[] = {"jet", "jetcone", "wta_jetcone"};
-    const std::string hist_names[] = {"", "jetcone0.2_", "wta_jetcone0.2_", "jet_perpcone0.2_", "jetcone_perpcone0.2_", "wta_jetcone_perpcone0.2_"};
+    const std::string hist_names[] = {"", "jetcone0.2_", "wta_jetcone0.2_", "jet_mbcone0.2_", "jetcone_mbcone0.2_", "wta_jetcone_mbcone0.2_"};
     std::cout << "checkpoint1" << std::endl;
 
     std::cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
@@ -285,6 +285,11 @@ void plot_eec_perpcone(string pt_min, string pt_max)
         h4->Add(h5, -1);
         h4->Add(h6, -1);
         h4_projs.push_back(h4);
+
+        // delete h4;
+        // delete h5;
+        // delete h6;
+        // delete h_total;
     }
 
     // Set to appropriate name
