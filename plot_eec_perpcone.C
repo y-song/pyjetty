@@ -268,23 +268,27 @@ void plot_eec_perpcone(string pt_min, string pt_max)
         h1_projs.push_back(h1_clones[iobs]->ProjectionY());
         h2_projs.push_back(h2_clones[iobs]->ProjectionY());
         h3_projs.push_back(h3_clones[iobs]->ProjectionY());
-        h6_projs.push_back(h6_clones[iobs]->ProjectionY());
 
-        TH1D *h5 = h5_clones[iobs]->ProjectionY();
-        TH1D *h6 = h6_clones[iobs]->ProjectionY();
         TH1D *h_total = (TH1D *)h1_clones[iobs]->ProjectionY()->Clone("h_total");
         h_total->Add(h2_clones[iobs]->ProjectionY());
         h_total->Add(h3_clones[iobs]->ProjectionY());
         htotal_projs.push_back(h_total);
+        
+        TH1D *h5 = h5_clones[iobs]->ProjectionY();
+        TH1D *h6 = h6_clones[iobs]->ProjectionY();
+        h5->Scale(0.5); // take the avg. of two cones
+        h6->Scale(0.5);
+
+        h6_projs.push_back(h6); // bkg-bkg
 
         h5->Add(h6, -2);
-        h5->Scale(0.5);
-        h5_projs.push_back(h5);
-
+        //h5->Scale(0.5);
+        h5_projs.push_back(h5); // sig-bkg
+        
         TH1D *h4 = (TH1D *)h_total->Clone("h4");
         h4->Add(h5, -1);
         h4->Add(h6, -1);
-        h4_projs.push_back(h4);
+        h4_projs.push_back(h4); // all - bb - (2)sb
     }
 
     // Set to appropriate name
