@@ -209,6 +209,7 @@ class ProcessIO(common_base.CommonBase):
         event_criteria += ' and event_plane_angle > @self.event_plane_range[0] and event_plane_angle < @self.event_plane_range[1]'
       event_df = self.event_df_orig.query(event_criteria)
       event_df.reset_index(drop=True)
+      event_df['iev'] = np.arange(0, event_df.shape[0])
 
     # Load track tree into dataframe
     track_tree = None
@@ -361,16 +362,16 @@ class ProcessIO(common_base.CommonBase):
 
     print('is_ENC on?',self.is_ENC)
     print('is_det on?',self.is_det_level)
-    print('debug',self.track_df)
+    print('debug1\n',self.track_df)
     if group_by_evid:
       print("Transform the track dataframe into a series object of fastjet particles per event...")
 
       # (i) Group the track dataframe by event
       #     track_df_grouped is a DataFrameGroupBy object with one track dataframe per event
       track_df_grouped = None
-      track_df_grouped = self.track_df.groupby(self.unique_identifier)
+      track_df_grouped = self.track_df.groupby(['iev'] + self.event_columns)
       print('debug2',type(track_df_grouped))
-      print('debug2',track_df_grouped.aggregate(np.sum))
+      print('debug2\n',track_df_grouped.aggregate(np.sum))
       # print('debug2',track_df_grouped.columns['ParticlePID'].values)
     
       # (ii) Transform the DataFrameGroupBy object to a SeriesGroupBy of fastjet particles
@@ -395,9 +396,9 @@ class ProcessIO(common_base.CommonBase):
       else:
         df_fjparticles = track_df_grouped.apply(
         self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
-      
-      print('debug4, combined: ',df_fjparticles)
-      
+        print('debug3', type(df_fjparticles))
+        print('debug3\n',df_fjparticles)
+            
       # df_fjparticles = pandas.DataFrame({"fj_particle": track_df_grouped.apply(
       #   self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt), "ParticleMCIndex": track_df_grouped["ParticleMCIndex"]})
       
