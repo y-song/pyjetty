@@ -119,7 +119,7 @@ void addLegendInfo(TLegend *l, TString ptbin)
     l->SetTextSize(0.045);
     l->AddEntry("NULL", "PYTHIA8 leading jets + PbPb 0-10%", "h");
     l->AddEntry("NULL", "#sqrt{#it{s}} = 5.02 TeV, #hat{#it{p}}_{T} > 30 GeV", "h");
-    l->AddEntry("NULL", "charged jets, anti-#it{k}_{T}, #it{R} = 0.2", "h");
+    l->AddEntry("NULL", "charged jets, anti-#it{k}_{T}, #it{R} = 0.4", "h");
     l->AddEntry("NULL", ptbin, "h");
     l->SetTextSize(0.037);
     l->SetBorderSize(0);
@@ -148,17 +148,17 @@ void plot_rho(string pt_min, string pt_max)
     SetStyle();
 
     // string one("");
-    // const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/AnalysisResults.root";
-    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/44272506/AnalysisResultsFinal.root";
+    // const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
+    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/44519927/AnalysisResultsFinal.root";
     TFile *f = new TFile(TString(infile), "READ");
-    std::string add_name = "_PbPb_embed_rho";
+    std::string add_name = "_test";//PbPb_embed_rho";
     std::cout << "output name will be " << add_name << std::endl;
     std::string outdir = "";
     std::string outfile = outdir + "AnalysisResultsOut" + add_name + ".root";
     TFile *f_out = new TFile(outfile.c_str(), "RECREATE");
 
-    const string jetR = "02";
-    const std::string hist_names[] = {"jetcone0.2_", "perpcone0.2_", "mbcone0.2_"};
+    const string jetR = "04";
+    const std::string hist_names[] = {"jetcone0.4_", "perpcone0.4_", "mbcone0.4_"};
     std::cout << "checkpoint1" << std::endl;
 
     std::cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
@@ -238,13 +238,13 @@ void plot_rho(string pt_min, string pt_max)
 
     addLegendInfo(l, ptbin);
     h1->Scale(1.0 / njets);
-    h2->Scale(0.5 / njets);
-    h3->Scale(0.5 / njets);
+    h2->Scale(1.0 / njets);
+    h3->Scale(1.0 / njets);
     std::cout << "Mean values: " << h1->GetMean() << ", " << h2->GetMean() << ", " << h3->GetMean() << endl;
 
     FormatHist(l, h1, "jet cone", markercolor1, markerstyle1);
     FormatHist(l, h2, "perp cone", markercolor2, markerstyle2);
-    FormatHist(l, h3, "MB cone", markercolor3, markerstyle3);
+    FormatHist(l, h3, "ME cone", markercolor3, markerstyle3);
     double arr_of_maxes[] = {h1->GetMaximum(), h2->GetMaximum()};
     double &maxy = *std::max_element(arr_of_maxes, arr_of_maxes + 2); // bc there are 4 elements in arr_of_maxes
     std::cout << "the max is " << maxy << endl;
@@ -253,7 +253,7 @@ void plot_rho(string pt_min, string pt_max)
     h1->GetXaxis()->SetRangeUser(0., 300.);
     h2->GetXaxis()->SetRangeUser(0., 300.);
     h3->GetXaxis()->SetRangeUser(0., 300.);
-    // h1->GetYaxis()->SetRangeUser(0, 10);
+    h1->GetYaxis()->SetRangeUser(0, 0.025);
     h1->GetXaxis()->SetTitle("#rho_{local} [GeV]");
 
     h1->Draw("L");
