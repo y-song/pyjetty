@@ -81,6 +81,16 @@ class PythiaGenENCMB(process_base.ProcessBase):
         else:
             self.rm_trk_min_pt = False
 
+        if 'jet_matching_distance' in config:
+            self.jet_matching_distance = config['jet_matching_distance']
+        else:
+            self.jet_matching_distance = 0.6
+        
+        if 'mc_fraction_threshold' in config:
+            self.mc_fraction_threshold = config['mc_fraction_threshold']
+        else:
+            self.mc_fraction_threshold = 0.5
+        
         # perp cone settings
         if 'static_perpcone' in config:
             self.static_perpcone = config['static_perpcone']
@@ -524,13 +534,22 @@ class PythiaGenENCMB(process_base.ProcessBase):
                             setattr(self, name, h)
                             getattr(self, hist_list_name).append(h)
 
-                    #         name = 'h_jetcone{}_matched_ENC{}_JetPt_ch_mix_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
-                    #         print('Initialize histogram',name)
-                    #         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                    #         h.GetXaxis().SetTitle('p_{T, pp jet}')
-                    #         h.GetYaxis().SetTitle('R_{L}')
-                    #         setattr(self, name, h)
-                    #         getattr(self, hist_list_name).append(h)
+                            if (pair_type_label == '_sb'):
+                                name = 'h_2perpcone{}_matched_ENC{}_JetPt_ch_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
+                                print('Initialize histogram',name)
+                                h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                                h.GetXaxis().SetTitle('p_{T, pp jet}')
+                                h.GetYaxis().SetTitle('R_{L}')
+                                setattr(self, name, h)
+                                getattr(self, hist_list_name).append(h)
+
+                                name = 'h_wta_2perpcone{}_matched_ENC{}_JetPt_ch_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
+                                print('Initialize histogram',name)
+                                h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                                h.GetXaxis().SetTitle('p_{T, pp jet}')
+                                h.GetYaxis().SetTitle('R_{L}')
+                                setattr(self, name, h)
+                                getattr(self, hist_list_name).append(h)
 
     #---------------------------------------------------------------
     # Initiate jet defs, selectors, and sd (if required)
@@ -671,7 +690,7 @@ class PythiaGenENCMB(process_base.ProcessBase):
         highest_pt_sub = 0.
         for i in range(0, len(jets_combined)):
             pt_sub = jets_combined[i].perp()-self.rho*jets_combined[i].area()
-            if (pt_sub > highest_pt_sub):
+            if ((pt_sub > highest_pt_sub) & (jets_combined[i].area() > 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0])):
                 highest_pt_sub = pt_sub
                 highest_index = i
                 
@@ -679,7 +698,10 @@ class PythiaGenENCMB(process_base.ProcessBase):
         if (highest_pt_sub < 5):
             return
         
-        jet_combined = jets_combined[highest_index] # assume the combined leading jet is matched to the pp leading jet
+        jet_combined = jets_combined[highest_index]
+        # mc_fraction = self.mc_fraction(jet_pp, jet_combined)
+        # if ((mc_fraction < self.mc_fraction_threshold) or ((self.is_geo_matched(jet_combined, jet_pp, self.jetR_list[0]))==False)):
+        #     return
         jet_combined_wta = reclusterer_wta.result(jet_combined)
         
         R_label = str(self.jetR_list[0]).replace('.', '')# + 'Scaled'
@@ -730,6 +752,7 @@ class PythiaGenENCMB(process_base.ProcessBase):
         for coneR in self.coneR_list:
             self.fill_matched_jetcone(jet_combined, jet_combined_wta, jet_pp, self.jetR_list[0], coneR)
             self.fill_matched_perpcone(jet_combined, jet_combined_wta, jet_pp, self.jetR_list[0], coneR)
+            self.fill_matched_2perpcone(jet_combined, jet_combined_wta, jet_pp, self.jetR_list[0], coneR)
             self.fill_matched_mbcone(jet_combined, jet_combined_wta, jet_pp, self.jetR_list[0], coneR)
     
     #---------------------------------------------------------------
@@ -802,12 +825,8 @@ class PythiaGenENCMB(process_base.ProcessBase):
         # Do perp cone for the E-scheme jet and E-scheme jet cone
         perp_jet1 = fj.PseudoJet()
         perp_jet1.reset_PtYPhiM(jet_combined.pt(), jet_combined.rapidity(), jet_combined.phi() + np.pi/2, jet_combined.m())
-        # perp_jet2 = fj.PseudoJet()
-        # perp_jet2.reset_PtYPhiM(jet_combined.pt(), jet_combined.rapidity(), jet_combined.phi() - np.pi/2, jet_combined.m())
         parts_in_perpcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet1, perpcone_R)
         parts_in_perpcone1 = self.rotate_parts(parts_in_perpcone1, -np.pi/2)
-        # parts_in_perpcone2 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet2, perpcone_R)        
-        # parts_in_perpcone2 = self.rotate_parts(parts_in_perpcone2, +np.pi/2)
         
         for mode in ['jet','jetcone']:
             # 1. E-scheme jet
@@ -829,41 +848,24 @@ class PythiaGenENCMB(process_base.ProcessBase):
                 part.set_user_index(-999)
                 parts_in_cone1.append(part)
             
-            # parts_in_cone2 = fj.vectorPJ()
-            # # fill parts from jet
-            # for part in parts_in_jet:
-            #     part.set_user_index(999)
-            #     parts_in_cone2.append(part)
-            # # fill parts from perp cone 2
-            # for part in parts_in_perpcone2:
-            #     part.set_user_index(-999)
-            #     parts_in_cone2.append(part)
-            
             # fill EEC for matched comb jet using pp jet for jet pT
             hname = 'h_{}_perpcone{}_matched_ENC{{}}_JetPt_ch_R{}_{{}}'.format(mode, coneR, R_label)
             self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, parts_in_cone1)
-            # self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, parts_in_cone2)
 
             # fill EEC for matched comb jet using comb jet (rho subtracted) for jet pT
             hname = 'h_{}_perpcone{}_matched_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(mode, coneR, R_label)
             self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, parts_in_cone1)
-            # self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, parts_in_cone2)
             
             if (mode == 'jetcone'):
                 # fill rho local for matched comb jet using pp jet for jet pT
                 hname = 'h_perpcone{}_matched_{{}}_JetPt_ch_R{}_{{}}'.format(coneR, R_label)
                 self.fill_matched_rho_local_histograms(hname, jet_pp, jet_combined, coneR, parts_in_cone1)
-                # self.fill_matched_rho_local_histograms(hname, jet_pp, jet_combined, coneR, parts_in_cone2)
         
         # Do perp cone for the WTA jet cone
         perp_jet3 = fj.PseudoJet()
         perp_jet3.reset_PtYPhiM(jet_combined_wta.pt(), jet_combined_wta.rapidity(), jet_combined_wta.phi() + np.pi/2, jet_combined_wta.m())
-        # perp_jet4 = fj.PseudoJet()
-        # perp_jet4.reset_PtYPhiM(jet_combined_wta.pt(), jet_combined_wta.rapidity(), jet_combined_wta.phi() - np.pi/2, jet_combined_wta.m())
         parts_in_perpcone3 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet3, perpcone_R)
         parts_in_perpcone3 = self.rotate_parts(parts_in_perpcone3, -np.pi/2)
-        # parts_in_perpcone4 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet4, perpcone_R)        
-        # parts_in_perpcone4 = self.rotate_parts(parts_in_perpcone4, +np.pi/2)
         
         for mode in ['jetcone']:
             # 3. WTA jet cone
@@ -881,30 +883,71 @@ class PythiaGenENCMB(process_base.ProcessBase):
                 part.set_user_index(-999)
                 parts_in_cone3.append(part)
             
-            # parts_in_cone4 = fj.vectorPJ()
-            # fill parts from jet
-            # for part in parts_in_jet:
-            #     part.set_user_index(999)
-            #     parts_in_cone4.append(part)
-            # fill parts from perp cone 4
-            # for part in parts_in_perpcone4:
-            #     part.set_user_index(-999)
-            #     parts_in_cone4.append(part)
-            
             # fill EEC for matched comb jet using pp jet for jet pT
             hname = 'h_wta_{}_perpcone{}_matched_ENC{{}}_JetPt_ch_R{}_{{}}'.format(mode, coneR, R_label)
             self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, parts_in_cone3) # Use the original E-scheme jet pT
-            # self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, parts_in_cone4)
 
             # fill EEC for matched comb jet using comb jet (rho subtracted) for jet pT
             hname = 'h_wta_{}_perpcone{}_matched_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(mode, coneR, R_label)
             self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, parts_in_cone3)
-            # self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, parts_in_cone4)
 
             # fill rho local for matched comb jet using pp jet for jet pT
             hname = 'h_wta_perpcone{}_matched_{{}}_JetPt_ch_R{}_{{}}'.format(coneR, R_label)
             self.fill_matched_rho_local_histograms(hname, jet_pp, jet_combined, coneR, parts_in_cone3)
-            # self.fill_matched_rho_local_histograms(hname, jet_pp, jet_combined, coneR, parts_in_cone4)
+            
+    def fill_matched_2perpcone(self, jet_combined, jet_combined_wta, jet_pp, jetR, coneR):
+
+        R_label = str(jetR).replace('.', '') #+ 'Scaled'
+        perpcone_R = coneR
+        # NB1: only enable dynamic option when coneR = jetR
+        # NB2: similar result using dynamic and static cone
+        if self.static_perpcone == False and coneR == jetR:
+            perpcone_R = math.sqrt(jet_combined.area()/np.pi)
+        
+        # Do perp cone for the E-scheme jet and E-scheme jet cone
+        perp_jet1 = fj.PseudoJet()
+        perp_jet1.reset_PtYPhiM(jet_combined.pt(), jet_combined.rapidity(), jet_combined.phi() + np.pi/2, jet_combined.m())
+        perp_jet2 = fj.PseudoJet()
+        perp_jet2.reset_PtYPhiM(jet_combined.pt(), jet_combined.rapidity(), jet_combined.phi() - np.pi/2, jet_combined.m())
+        parts_in_perpcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet1, perpcone_R)
+        parts_in_perpcone1 = self.rotate_parts(parts_in_perpcone1, -np.pi/2)
+        parts_in_perpcone2 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet2, perpcone_R)        
+        parts_in_perpcone2 = self.rotate_parts(parts_in_perpcone2, +np.pi/2)
+        
+        # label one perpcone as "sig" and the other as "bkg" so the perp1-perp2 and perp1(2)-perp1(2) correlations can be saved separately
+        parts_in_cone = fj.vectorPJ()
+        for part in parts_in_perpcone1:
+            part.set_user_index(999)
+            parts_in_cone.append(part)
+        for part in parts_in_perpcone2:
+            part.set_user_index(-999)
+            parts_in_cone.append(part)
+            
+        # fill EEC for matched comb jet using pp jet for jet pT
+        hname = 'h_2perpcone{}_matched_ENC{{}}_JetPt_ch_R{}_{{}}'.format(coneR, R_label)
+        self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, parts_in_cone)
+        
+        # Do perp cone for the WTA jet cone
+        perp_jet3 = fj.PseudoJet()
+        perp_jet3.reset_PtYPhiM(jet_combined_wta.pt(), jet_combined_wta.rapidity(), jet_combined_wta.phi() + np.pi/2, jet_combined_wta.m())
+        perp_jet4 = fj.PseudoJet()
+        perp_jet4.reset_PtYPhiM(jet_combined_wta.pt(), jet_combined_wta.rapidity(), jet_combined_wta.phi() - np.pi/2, jet_combined_wta.m())
+        parts_in_perpcone3 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet3, perpcone_R)
+        parts_in_perpcone3 = self.rotate_parts(parts_in_perpcone3, -np.pi/2)
+        parts_in_perpcone4 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet4, perpcone_R)        
+        parts_in_perpcone4 = self.rotate_parts(parts_in_perpcone4, +np.pi/2)
+        
+        parts_in_cone = fj.vectorPJ()
+        for part in parts_in_perpcone3:
+            part.set_user_index(999)
+            parts_in_cone.append(part)
+        for part in parts_in_perpcone4:
+            part.set_user_index(-999)
+            parts_in_cone.append(part)
+            
+        # fill EEC for matched comb jet using pp jet for jet pT
+        hname = 'h_wta_2perpcone{}_matched_ENC{{}}_JetPt_ch_R{}_{{}}'.format(coneR, R_label)
+        self.fill_matched_ENC_histograms(hname, jet_pp, jet_combined, parts_in_cone) # Use the original E-scheme jet pT
             
     #---------------------------------------------------------------
     # Fill mb cone for matched combined jets
@@ -1101,6 +1144,8 @@ class PythiaGenENCMB(process_base.ProcessBase):
                     pair_type = self.check_pair_type(new_corr, ipoint, c_select, index)
                     pair_type_label = self.pair_type_labels[pair_type]
                   
+                    if '2perpcone' in hname and pair_type_label != '_sb':
+                        continue
                     getattr(self, hname.format(str(ipoint) + pair_type_label,thrd_label)).Fill(jet_pt_select, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
 
     #---------------------------------------------------------------
