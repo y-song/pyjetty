@@ -181,7 +181,7 @@ class ProcessDataBase(process_base.ProcessBase):
     # Use IO helper class to convert ROOT TTree into a SeriesGroupBy object of fastjet particles per event
     print('--- {} seconds ---'.format(time.time() - self.start_time))
     io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle',
-                              is_pp=self.is_pp, use_ev_id_ext=True)
+                              is_pp=False, use_ev_id_ext=True)
     self.df_fjparticles = io.load_data(m=self.m)
     self.nEvents = len(self.df_fjparticles.index)
     self.nTracks = len(io.track_df.index)
@@ -192,7 +192,7 @@ class ProcessDataBase(process_base.ProcessBase):
     
     # Create constituent subtractor, if configured
     if not self.is_pp:
-      self.constituent_subtractor = [CEventSubtractor(max_distance=R_max, alpha=self.alpha, max_eta=self.max_eta, bge_rho_grid_size=self.bge_rho_grid_size, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area, distance_type=fjcontrib.ConstituentSubtractor.deltaR) for R_max in self.max_distance]
+      self.constituent_subtractor = CEventSubtractor(max_distance=self.max_distance, alpha=self.alpha, max_eta=self.max_eta, bge_rho_grid_size=self.bge_rho_grid_size, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area, distance_type=fjcontrib.ConstituentSubtractor.deltaR)
     
     print(self)
 
@@ -278,14 +278,14 @@ class ProcessDataBase(process_base.ProcessBase):
       print('event {}'.format(self.event_number))
     
     if len(fj_particles) > 1:
-      if np.abs(fj_particles[0].pt() - fj_particles[1].pt()) <  1e-10:
+      if np.abs(fj_particles[0].pt() - fj_particles[1].pt()) < 1e-10:
         print('WARNING: Duplicate particles may be present')
         print([p.user_index() for p in fj_particles])
         print([p.pt() for p in fj_particles])
   
     # Perform constituent subtraction for each R_max (do this once, for all jetR)
     if not self.is_pp:
-      fj_particles_subtracted = [self.constituent_subtractor[i].process_event(fj_particles) for i, R_max in enumerate(self.max_distance)]
+      fj_particles_subtracted = self.constituent_subtractor.process_event(fj_particles)
     
     # Loop through jetR, and process event for each R
     for jetR in self.jetR_list:
@@ -295,7 +295,7 @@ class ProcessDataBase(process_base.ProcessBase):
 
       # Set jet definition and a jet selector
       jet_def = fj.JetDefinition(fj.antikt_algorithm, jetR)
-      jet_selector = fj.SelectorPtMin(5.0) & fj.SelectorAbsRapMax(0.9 - jetR)
+      jet_selector = fj.SelectorPtMin(40.0) & fj.SelectorAbsRapMax(0.9 - jetR)
       if self.debug_level > 2:
         print('jet definition is:', jet_def)
         print('jet selector is:', jet_selector,'\n')
@@ -315,54 +315,32 @@ class ProcessDataBase(process_base.ProcessBase):
         
       else:
       
-        for i, R_max in enumerate(self.max_distance):
-                    
-          if self.debug_level > 1:
-            print('R_max: {}'.format(R_max))
+        if self.debug_level > 1:
+          print('R_max: {}'.format(self.max_distance))
             
-          # Keep track of whether to fill R_max-independent histograms
-          self.fill_Rmax_indep_hists = (i == 0)
+        # Perform constituent subtraction
+        rho = self.constituent_subtractor.bge_rho.rho()
           
-          # Perform constituent subtraction
-          rho = self.constituent_subtractor[i].bge_rho.rho()
-          if self.fill_R_indep_hists and self.fill_Rmax_indep_hists:
-            getattr(self, 'hRho').Fill(rho)
-          
-          # Do jet finding (re-do each time, to make sure matching info gets reset)
-          cs = fj.ClusterSequence(fj_particles_subtracted[i], jet_def) # FIX ME: not sure whether to enable the area or not
-          jets = fj.sorted_by_pt(cs.inclusive_jets())
-          jets_selected = jet_selector(jets)
+        # Do jet finding (re-do each time, to make sure matching info gets reset)
+        cs = fj.ClusterSequence(fj_particles_subtracted, jet_def)
+        jets = fj.sorted_by_pt(cs.inclusive_jets())
+        jets_selected = jet_selector(jets)
 
-          # cs_unsub = fj.ClusterSequence(fj_particles, jet_def)
-          cs_unsub = fj.ClusterSequenceArea(fj_particles, jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
-          jets_unsub = fj.sorted_by_pt(cs_unsub.inclusive_jets())
-          jets_selected_unsub = jet_selector(jets_unsub)
+        # cs_unsub = fj.ClusterSequence(fj_particles, jet_def)
+        cs_unsub = fj.ClusterSequenceArea(fj_particles, jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
+        jets_unsub = fj.sorted_by_pt(cs_unsub.inclusive_jets())
+        jets_selected_unsub = jet_selector(jets_unsub)
 
-          # debug
-          # for jet in jets_selected_unsub:
-          #   if jet.perp()-jet.area()*rho > 20:
-          #     print('unsubtracted: jet pt',jet.perp(),'(',jet.perp()-jet.area()*rho,') eta',jet.eta(),'phi',jet.phi(),'area',jet.area(),'rho',rho,'product',jet.area()*rho)
-          #     constituents = fj.sorted_by_pt(jet.constituents())
-          #     if len(constituents)>0:
-          #       print('leading part pt',constituents[0].perp(),'eta',constituents[0].eta(),'phi',constituents[0].phi())
-
-          # for jet in jets_selected:
-          #   if jet.perp() > 20:
-          #     print('subtracted: jet pt',jet.perp(),'eta',jet.eta(),'phi',jet.phi())
-          #     constituents = fj.sorted_by_pt(jet.constituents())
-          #     if len(constituents)>0:
-          #       print('leading part pt',constituents[0].perp(),'eta',constituents[0].eta(),'phi',constituents[0].phi())
-          
-          if self.do_rho_subtraction:
-            if not (self.do_jetcone or self.do_perpcone):
-              self.analyze_jets(jets_selected_unsub, jetR, R_max = R_max, rho_bge = rho)
-            else:
-              self.analyze_jets(jets_selected_unsub, jetR, R_max = R_max, rho_bge = rho, parts = fj_particles)
+        if self.do_rho_subtraction:
+          if not (self.do_jetcone or self.do_perpcone):
+            self.analyze_jets(jets_selected_unsub, jetR, R_max = self.max_distance, rho_bge = rho)
           else:
-            if not (self.do_jetcone or self.do_perpcone):
-              self.analyze_jets(jets_selected, jetR, R_max = R_max)
-            else:
-              self.analyze_jets(jets_selected, jetR, R_max = R_max, rho_bge = 0, parts = fj_particles) # NB: feed all particles for cone around the CS subtracted jet. An alternate way is to use CS subtracted particles
+            self.analyze_jets(jets_selected_unsub, jetR, R_max = self.max_distance, rho_bge = rho, parts = fj_particles)
+        else:
+          if not (self.do_jetcone or self.do_perpcone):
+            self.analyze_jets(jets_selected, jetR, R_max = self.max_distance)
+          else:
+            self.analyze_jets(jets_selected, jetR, R_max = self.max_distance, rho_bge = 0, parts = fj_particles) # NB: feed all particles for cone around the CS subtracted jet. An alternate way is to use CS subtracted particles
 
   #---------------------------------------------------------------
   # Jet selection cuts.
@@ -396,56 +374,11 @@ class ProcessDataBase(process_base.ProcessBase):
   #---------------------------------------------------------------
   def analyze_jets(self, jets_selected, jetR, R_max = None, rho_bge = 0, parts = None):
   
-    # Prepare suffix for the CS background subtraction config
-    if R_max and (not self.do_rho_subtraction):
-      R_max_label = '_Rmax{}'.format(R_max) # only use this suffix for "real" CS subtraction, not just rho subtraction
-    else:
-      R_max_label = ''
-
     # reselect jets after background subtraction (for PbPb case)
-    jets_reselected = self.reselect_jets(jets_selected, jetR, rho_bge = rho_bge)
+    # jets_reselected = self.reselect_jets(jets_selected, jetR, rho_bge = rho_bge)
 
-    # Loop through jets and call user function to fill histos
-    if self.is_dijet:
-      
-      # in case background subtruction chnaged the ordering
-      jets_reselected_sorted = fj.sorted_by_pt(jets_reselected)
-      dijets = jets_reselected_sorted[:2]
-
-      # accept events with # of jets >=2
-      if len(dijets) < 2:
-        return
-
-      dphi = dijets[0].delta_phi_to(dijets[1])
-      xj = dijets[1].perp()/dijets[0].perp()
-
-      # back-to-back requirement
-      if abs(dphi) < 5/6*math.pi:
-        return
-      
-      # minimum pT cut on subleading jet
-      if dijets[1].perp() < 10:
-        return
-      
-      # print('dijet xj',xj,'(',dijets[1].perp(),'/',dijets[0].perp(),') dphi',dphi)
-
-      ixjbin = int(xj/self.xj_interval)
-      dijet_xj_label = '_xj{:.1f}{:.1f}'.format(0.2*ixjbin, 0.2*(ixjbin+1))
-
-      # Set suffix for filling histograms
-      suffix = '{}{}'.format(R_max_label, dijet_xj_label)
-
-      if self.leading_jet: # leading
-        result = self.analyze_accepted_jet(dijets[0], jetR, suffix, rho_bge)
-      else: # subleading
-        result = self.analyze_accepted_jet(dijets[1], jetR, suffix, rho_bge)
-    
-    else:
-
-      # Set suffix for filling histograms
-      suffix = '{}'.format(R_max_label)
-
-      result = [self.analyze_accepted_jet(jet, jetR, suffix, rho_bge, parts) for jet in jets_reselected]
+    suffix = ''
+    result = [self.analyze_accepted_jet(jet, jetR, suffix, rho_bge, parts) for jet in jets_selected]
 
   #---------------------------------------------------------------
   # Fill histograms
@@ -456,26 +389,19 @@ class ProcessDataBase(process_base.ProcessBase):
     if not self.utils.is_det_jet_accepted(jet):
       return
           
-    # when using rho subtraction for PbPb analysis, skip jets with no area info or with zero area (NB: need to check how often this happens and if this results in any bias)
+    # when using rho subtraction for PbPb analysis, skip jets with no area info or with small area (NB: need to check how often this happens and if this results in any bias)
     if self.do_rho_subtraction:
       if jet.has_area():
-        if jet.area() == 0:
+        if jet.area() < 0.6*np.pi*jetR*jetR:
           return
       else:
         return
 
     # Fill base histograms
     if self.do_rho_subtraction and rho_bge > 0:
-      jet_pt_ungroomed = jet.pt() - rho_bge*jet.area()
+      jet_pt_sub = jet.pt() - rho_bge*jet.area()
     else:
-      jet_pt_ungroomed = jet.pt()
-
-    if self.is_pp or self.fill_Rmax_indep_hists:
-    
-      hZ = getattr(self, 'hZ_R{}'.format(jetR))
-      for constituent in jet.constituents():
-        z = constituent.pt() / jet_pt_ungroomed
-        hZ.Fill(jet_pt_ungroomed, z)
+      jet_pt_sub = jet.pt()
     
     # Loop through each jet subconfiguration (i.e. subobservable / grooming setting)
     # Note that the subconfigurations are defined by the first observable, if multiple are defined
@@ -485,7 +411,9 @@ class ProcessDataBase(process_base.ProcessBase):
       obs_setting = self.obs_settings[observable][i]
       grooming_setting = self.obs_grooming_settings[observable][i]
       obs_label = self.utils.obs_label(obs_setting, grooming_setting)
-    
+      obs_label = 'trk{:.0f}'.format((float)(obs_label)*10)
+      # print("observable, obs_label:", observable, ", ", obs_label)
+
       # Groom jet, if applicable
       if grooming_setting:
         gshop = fjcontrib.GroomerShop(jet, jetR, self.reclustering_algorithm)
@@ -498,12 +426,12 @@ class ProcessDataBase(process_base.ProcessBase):
       # Call user function to fill histograms
       if not self.do_jetcone:
         self.fill_jet_histograms(jet, jet_groomed_lund, jetR, obs_setting, grooming_setting,
-                               obs_label, jet_pt_ungroomed, suffix)
+                               obs_label, jet_pt_sub, suffix)
       # Fill histograms for jetcone
       else:
         for jetcone_R in self.jetcone_R_list:
           parts_in_cone = self.find_parts_around_jet(parts, jet, jetcone_R)
-          self.fill_jet_cone_histograms(parts_in_cone, '_jetcone{}'.format(jetcone_R), jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_ungroomed, suffix, rho_bge)
+          self.fill_jet_cone_histograms(parts_in_cone, '_jetcone{}'.format(jetcone_R), jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_sub, suffix, rho_bge)
 
       if self.do_perpcone:
         perpcone_R_list = []
@@ -523,17 +451,17 @@ class ProcessDataBase(process_base.ProcessBase):
         for perpcone_R in perpcone_R_list:
 
           parts_in_cone1 = self.construct_parts_in_perpcone(parts, jet, jetR, perpcone_R, +rotation_sign)
-          self.fill_perp_cone_histograms(parts_in_cone1, '_perpcone{}'.format(perpcone_R), jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_ungroomed, suffix, rho_bge)
+          self.fill_perp_cone_histograms(parts_in_cone1, perpcone_R, jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_sub, suffix, rho_bge)
 
           parts_in_cone2 = self.construct_parts_in_perpcone(parts, jet, jetR, perpcone_R, -rotation_sign)
-          self.fill_perp_cone_histograms(parts_in_cone2, '_perpcone{}'.format(perpcone_R), jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_ungroomed, suffix, rho_bge)
+          self.fill_perp_cone_histograms(parts_in_cone2, perpcone_R, jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_sub, suffix, rho_bge)
 
         # two perpcones
         if self.do_2cones:
           for perpcone_R in perpcone_R_list:
 
             parts_in_cone = self.construct_parts_in_2perpcone(parts, jet, jetR, perpcone_R, rotation_sign)
-            self.fill_perp_cone_histograms(parts_in_cone, '_2perpcone{}'.format(perpcone_R), jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_ungroomed, suffix, rho_bge)
+            self.fill_perp_cone_histograms(parts_in_cone, perpcone_R, jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_sub, suffix, rho_bge, twocones=True)
   
   def construct_parts_in_perpcone(self, parts, jet, jetR, perpcone_R, rotation_sign):
 
@@ -655,7 +583,7 @@ class ProcessDataBase(process_base.ProcessBase):
   # You must implement this
   #---------------------------------------------------------------
   def fill_jet_histograms(self, jet, jet_groomed_lund, jetR, obs_setting, grooming_setting,
-                          obs_label, jet_pt_ungroomed, suffix):
+                          obs_label, jet_pt_sub, suffix):
   
     raise NotImplementedError('You must implement fill_jet_histograms()!')
 
@@ -663,7 +591,7 @@ class ProcessDataBase(process_base.ProcessBase):
   # This function is called once for each jet subconfiguration
   # You must implement this
   #---------------------------------------------------------------
-  def fill_jet_cone_histograms(self, cone_parts, cone_label, jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_ungroomed, suffix, rho_bge = 0):
+  def fill_jet_cone_histograms(self, cone_parts, cone_label, jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_sub, suffix, rho_bge = 0):
   
     raise NotImplementedError('You must implement fill_perp_cone_histograms()!')
 
@@ -671,6 +599,6 @@ class ProcessDataBase(process_base.ProcessBase):
   # This function is called once for each jet subconfiguration
   # You must implement this
   #---------------------------------------------------------------
-  def fill_perp_cone_histograms(self, cone_parts, cone_label, jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_ungroomed, suffix, rho_bge = 0):
+  def fill_perp_cone_histograms(self, cone_parts, cone_label, jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_sub, suffix, rho_bge = 0):
   
     raise NotImplementedError('You must implement fill_perp_cone_histograms()!')

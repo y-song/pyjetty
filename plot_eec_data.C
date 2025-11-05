@@ -157,7 +157,7 @@ void plot_eec_data(string pt_min, string pt_max)
     const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
     // const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/44898661/AnalysisResultsFinal.root";
     TFile *f = new TFile(TString(infile), "READ");
-    std::string add_name = "_test";//PbPb_embed_perpcone";
+    std::string add_name = "_2perpcone_test";//PbPb_embed_perpcone";
     std::cout << "output name will be " << add_name << std::endl;
     std::string outdir = "";
     std::string outfile = outdir + "AnalysisResultsOut" + add_name + ".root";
@@ -166,7 +166,7 @@ void plot_eec_data(string pt_min, string pt_max)
     const int numjetaxes = 1;
     const string jetR = "04";
     const std::string jetaxis_names[] = {"data"};
-    const std::string hist_names[] = {"jet_ENC_RL2_JetPt_R04_trk10", "perpcone0.4_jet_ENC_RL2_sb_JetPt_R04_trk10", "perpcone0.4_jet_ENC_RL2_bb_JetPt_R04_trk10"};
+    const std::string hist_names[] = {"jet_ENC_RL2_JetPt_R04_trk10", "perpcone0.4_jet_ENC_RL2_sb_JetPt_R04_trk10", "perpcone0.4_jet_ENC_RL2_bb_JetPt_R04_trk10", "2perpcone0.4_jet_ENC_RL2_sb_JetPt_R04_trk10"};
     std::cout << "checkpoint1" << std::endl;
 
     std::cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
@@ -174,7 +174,7 @@ void plot_eec_data(string pt_min, string pt_max)
     std::vector<std::string> h1_names;
     std::vector<std::string> h2_names;
     std::vector<std::string> h3_names;
-    // std::vector<std::string> h4_names;
+    std::vector<std::string> h4_names;
     // std::vector<std::string> h5_names;
     // std::vector<std::string> h6_names;
     // std::vector<std::string> h7_names;
@@ -186,7 +186,7 @@ void plot_eec_data(string pt_min, string pt_max)
         const std::string h1_name = "h_" + hist_names[0];
         const std::string h2_name = "h_" + hist_names[1];
         const std::string h3_name = "h_" + hist_names[2];
-        // const std::string h4_name = "h_" + hist_names[iobs + 3] + "matched_ENC2_ss_JetPt_ch_R" + jetR + "_trk10";
+        const std::string h4_name = "h_" + hist_names[3];
         // const std::string h5_name = "h_" + hist_names[iobs + 3] + "matched_ENC2_sb_JetPt_ch_R" + jetR + "_trk10";
         // const std::string h6_name = "h_" + hist_names[iobs + 3] + "matched_ENC2_bb_JetPt_ch_R" + jetR + "_trk10";
         // const std::string h7_name = "h_" + hist_names[iobs + 6] + "matched_ENC2_sb_JetPt_ch_R" + jetR + "_trk10";
@@ -194,7 +194,7 @@ void plot_eec_data(string pt_min, string pt_max)
         h1_names.push_back(h1_name);
         h2_names.push_back(h2_name);
         h3_names.push_back(h3_name);
-        // h4_names.push_back(h4_name);
+        h4_names.push_back(h4_name);
         // h5_names.push_back(h5_name);
         // h6_names.push_back(h6_name);
         // h7_names.push_back(h7_name);
@@ -211,7 +211,7 @@ void plot_eec_data(string pt_min, string pt_max)
     std::vector<TH2 *> h1_vector;
     std::vector<TH2 *> h2_vector;
     std::vector<TH2 *> h3_vector;
-    // std::vector<TH2 *> h4_vector;
+    std::vector<TH2 *> h4_vector;
     // std::vector<TH2 *> h5_vector;
     // std::vector<TH2 *> h6_vector;
     // std::vector<TH2 *> h7_vector;
@@ -221,10 +221,11 @@ void plot_eec_data(string pt_min, string pt_max)
         std::cout << h1_names[iobs].c_str() << endl;
         std::cout << h2_names[iobs].c_str() << endl;
         std::cout << h3_names[iobs].c_str() << endl;
+        std::cout << h4_names[iobs].c_str() << endl;
         h1_vector.push_back((TH2 *)f->Get(h1_names[iobs].c_str()));
         h2_vector.push_back((TH2 *)f->Get(h2_names[iobs].c_str()));
         h3_vector.push_back((TH2 *)f->Get(h3_names[iobs].c_str()));
-        // h4_vector.push_back((TH2 *)f->Get(h4_names[iobs].c_str()));
+        h4_vector.push_back((TH2 *)f->Get(h4_names[iobs].c_str()));
         // h5_vector.push_back((TH2 *)f->Get(h5_names[iobs].c_str()));
         // h6_vector.push_back((TH2 *)f->Get(h6_names[iobs].c_str()));
         // h7_vector.push_back((TH2 *)f->Get(h7_names[iobs].c_str()));
@@ -234,7 +235,7 @@ void plot_eec_data(string pt_min, string pt_max)
     std::vector<TH2 *> h1_clones;
     std::vector<TH2 *> h2_clones;
     std::vector<TH2 *> h3_clones;
-    // std::vector<TH2 *> h4_clones;
+    std::vector<TH2 *> h4_clones;
     // std::vector<TH2 *> h5_clones;
     // std::vector<TH2 *> h6_clones;
     // std::vector<TH2 *> h7_clones;
@@ -244,7 +245,7 @@ void plot_eec_data(string pt_min, string pt_max)
         h1_clones.push_back((TH2 *)h1_vector[iobs]->Clone(Form("%s_clone", h1_names[iobs].c_str())));
         h2_clones.push_back((TH2 *)h2_vector[iobs]->Clone(Form("%s_clone", h2_names[iobs].c_str())));
         h3_clones.push_back((TH2 *)h3_vector[iobs]->Clone(Form("%s_clone", h3_names[iobs].c_str())));
-        // h4_clones.push_back((TH2 *)h4_vector[iobs]->Clone(Form("%s_clone", h4_names[iobs].c_str())));
+        h4_clones.push_back((TH2 *)h4_vector[iobs]->Clone(Form("%s_clone", h4_names[iobs].c_str())));
         // h5_clones.push_back((TH2 *)h5_vector[iobs]->Clone(Form("%s_clone", h5_names[iobs].c_str())));
         // h6_clones.push_back((TH2 *)h6_vector[iobs]->Clone(Form("%s_clone", h6_names[iobs].c_str())));
         // h7_clones.push_back((TH2 *)h7_vector[iobs]->Clone(Form("%s_clone", h7_names[iobs].c_str())));
@@ -255,7 +256,7 @@ void plot_eec_data(string pt_min, string pt_max)
         h1_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max)); // apply cut on jet pt
         h2_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
         h3_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
-        // h4_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
+        h4_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
         // h5_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
         // h6_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
         // h7_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
@@ -280,6 +281,7 @@ void plot_eec_data(string pt_min, string pt_max)
         TH1D *h1 = h1_clones[iobs]->ProjectionY();
         TH1D *h2 = h2_clones[iobs]->ProjectionY();
         TH1D *h3 = h3_clones[iobs]->ProjectionY();
+        TH1D *h4 = h4_clones[iobs]->ProjectionY();
         TH1D *h_total = (TH1D *)h1->Clone("h_total");
 
         htotal_projs.push_back(h_total);
@@ -287,7 +289,7 @@ void plot_eec_data(string pt_min, string pt_max)
         h2->Scale(0.5);
         h3->Scale(0.5);
         h3_projs.push_back(h3);
-        h2->Add(h3, -2);
+        h2->Add(h4, -1);
         h2_projs.push_back(h2);
 
         h1->Add(h2, -1);
