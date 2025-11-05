@@ -155,7 +155,7 @@ void plot_eec_data(string pt_min, string pt_max)
 
     // string one("");
     const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
-    // const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/44529118/AnalysisResultsFinal.root";
+    // const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/44898661/AnalysisResultsFinal.root";
     TFile *f = new TFile(TString(infile), "READ");
     std::string add_name = "_test";//PbPb_embed_perpcone";
     std::cout << "output name will be " << add_name << std::endl;
@@ -165,15 +165,15 @@ void plot_eec_data(string pt_min, string pt_max)
 
     const int numjetaxes = 1;
     const string jetR = "04";
-    const std::string jetaxis_names[] = {"raw"};
-    const std::string hist_names[] = {"jet_ENC_RL2_JetPt_R04_trk10"};
+    const std::string jetaxis_names[] = {"data"};
+    const std::string hist_names[] = {"jet_ENC_RL2_JetPt_R04_trk10", "perpcone0.4_jet_ENC_RL2_sb_JetPt_R04_trk10", "perpcone0.4_jet_ENC_RL2_bb_JetPt_R04_trk10"};
     std::cout << "checkpoint1" << std::endl;
 
     std::cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
 
     std::vector<std::string> h1_names;
-    // std::vector<std::string> h2_names;
-    // std::vector<std::string> h3_names;
+    std::vector<std::string> h2_names;
+    std::vector<std::string> h3_names;
     // std::vector<std::string> h4_names;
     // std::vector<std::string> h5_names;
     // std::vector<std::string> h6_names;
@@ -183,17 +183,17 @@ void plot_eec_data(string pt_min, string pt_max)
 
     for (int iobs = 0; iobs < numjetaxes; iobs++)
     {
-        const std::string h1_name = "h_" + hist_names[iobs];
-        // const std::string h2_name = "h_" + hist_names[iobs] + "matched_ENC2_sb_JetPt_ch_R" + jetR + "_trk10";
-        // const std::string h3_name = "h_" + hist_names[iobs] + "matched_ENC2_bb_JetPt_ch_R" + jetR + "_trk10";
+        const std::string h1_name = "h_" + hist_names[0];
+        const std::string h2_name = "h_" + hist_names[1];
+        const std::string h3_name = "h_" + hist_names[2];
         // const std::string h4_name = "h_" + hist_names[iobs + 3] + "matched_ENC2_ss_JetPt_ch_R" + jetR + "_trk10";
         // const std::string h5_name = "h_" + hist_names[iobs + 3] + "matched_ENC2_sb_JetPt_ch_R" + jetR + "_trk10";
         // const std::string h6_name = "h_" + hist_names[iobs + 3] + "matched_ENC2_bb_JetPt_ch_R" + jetR + "_trk10";
         // const std::string h7_name = "h_" + hist_names[iobs + 6] + "matched_ENC2_sb_JetPt_ch_R" + jetR + "_trk10";
 
         h1_names.push_back(h1_name);
-        // h2_names.push_back(h2_name);
-        // h3_names.push_back(h3_name);
+        h2_names.push_back(h2_name);
+        h3_names.push_back(h3_name);
         // h4_names.push_back(h4_name);
         // h5_names.push_back(h5_name);
         // h6_names.push_back(h6_name);
@@ -209,8 +209,8 @@ void plot_eec_data(string pt_min, string pt_max)
     //-------------------------------------------------//
     // find D0 reconstruction through charm
     std::vector<TH2 *> h1_vector;
-    // std::vector<TH2 *> h2_vector;
-    // std::vector<TH2 *> h3_vector;
+    std::vector<TH2 *> h2_vector;
+    std::vector<TH2 *> h3_vector;
     // std::vector<TH2 *> h4_vector;
     // std::vector<TH2 *> h5_vector;
     // std::vector<TH2 *> h6_vector;
@@ -219,9 +219,11 @@ void plot_eec_data(string pt_min, string pt_max)
     for (int iobs = 0; iobs < numjetaxes; iobs++)
     {
         std::cout << h1_names[iobs].c_str() << endl;
+        std::cout << h2_names[iobs].c_str() << endl;
+        std::cout << h3_names[iobs].c_str() << endl;
         h1_vector.push_back((TH2 *)f->Get(h1_names[iobs].c_str()));
-        // h2_vector.push_back((TH2 *)f->Get(h2_names[iobs].c_str()));
-        // h3_vector.push_back((TH2 *)f->Get(h3_names[iobs].c_str()));
+        h2_vector.push_back((TH2 *)f->Get(h2_names[iobs].c_str()));
+        h3_vector.push_back((TH2 *)f->Get(h3_names[iobs].c_str()));
         // h4_vector.push_back((TH2 *)f->Get(h4_names[iobs].c_str()));
         // h5_vector.push_back((TH2 *)f->Get(h5_names[iobs].c_str()));
         // h6_vector.push_back((TH2 *)f->Get(h6_names[iobs].c_str()));
@@ -230,8 +232,8 @@ void plot_eec_data(string pt_min, string pt_max)
     std::cout << "checkpoint3" << endl;
 
     std::vector<TH2 *> h1_clones;
-    // std::vector<TH2 *> h2_clones;
-    // std::vector<TH2 *> h3_clones;
+    std::vector<TH2 *> h2_clones;
+    std::vector<TH2 *> h3_clones;
     // std::vector<TH2 *> h4_clones;
     // std::vector<TH2 *> h5_clones;
     // std::vector<TH2 *> h6_clones;
@@ -240,8 +242,8 @@ void plot_eec_data(string pt_min, string pt_max)
     for (int iobs = 0; iobs < numjetaxes; iobs++)
     {
         h1_clones.push_back((TH2 *)h1_vector[iobs]->Clone(Form("%s_clone", h1_names[iobs].c_str())));
-        // h2_clones.push_back((TH2 *)h2_vector[iobs]->Clone(Form("%s_clone", h2_names[iobs].c_str())));
-        // h3_clones.push_back((TH2 *)h3_vector[iobs]->Clone(Form("%s_clone", h3_names[iobs].c_str())));
+        h2_clones.push_back((TH2 *)h2_vector[iobs]->Clone(Form("%s_clone", h2_names[iobs].c_str())));
+        h3_clones.push_back((TH2 *)h3_vector[iobs]->Clone(Form("%s_clone", h3_names[iobs].c_str())));
         // h4_clones.push_back((TH2 *)h4_vector[iobs]->Clone(Form("%s_clone", h4_names[iobs].c_str())));
         // h5_clones.push_back((TH2 *)h5_vector[iobs]->Clone(Form("%s_clone", h5_names[iobs].c_str())));
         // h6_clones.push_back((TH2 *)h6_vector[iobs]->Clone(Form("%s_clone", h6_names[iobs].c_str())));
@@ -251,8 +253,8 @@ void plot_eec_data(string pt_min, string pt_max)
     for (int iobs = 0; iobs < numjetaxes; iobs++)
     {
         h1_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max)); // apply cut on jet pt
-        // h2_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
-        // h3_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
+        h2_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
+        h3_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
         // h4_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
         // h5_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
         // h6_clones[iobs]->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
@@ -263,46 +265,34 @@ void plot_eec_data(string pt_min, string pt_max)
 
     // Project onto observable axis
     std::vector<TH1D *> h1_projs;
-    // std::vector<TH1D *> h2_projs;
-    // std::vector<TH1D *> h3_projs;
+    std::vector<TH1D *> h2_projs;
+    std::vector<TH1D *> h3_projs;
     // std::vector<TH1D *> h4_projs;
     // std::vector<TH1D *> h5_projs;
     // std::vector<TH1D *> h6_projs;
     // std::vector<TH1D *> h7_projs;
-    // std::vector<TH1D *> htotal_projs;
+    std::vector<TH1D *> htotal_projs;
 
     for (int iobs = 0; iobs < numjetaxes; iobs++)
     {
         std::cout << "iobs = " << iobs << endl;
-        h1_projs.push_back(h1_clones[iobs]->ProjectionY());
-        // h2_projs.push_back(h2_clones[iobs]->ProjectionY());
-        // h3_projs.push_back(h3_clones[iobs]->ProjectionY());
 
-        // TH1D *h_total = (TH1D *)h1_clones[iobs]->ProjectionY()->Clone("h_total");
-        // h_total->Add(h2_clones[iobs]->ProjectionY());
-        // h_total->Add(h3_clones[iobs]->ProjectionY());
-        // htotal_projs.push_back(h_total);
-        
-        // TH1D *h5 = h5_clones[iobs]->ProjectionY();
-        // TH1D *h6 = h6_clones[iobs]->ProjectionY();
-        // TH1D *h7 = h7_clones[iobs]->ProjectionY();
+        TH1D *h1 = h1_clones[iobs]->ProjectionY();
+        TH1D *h2 = h2_clones[iobs]->ProjectionY();
+        TH1D *h3 = h3_clones[iobs]->ProjectionY();
+        TH1D *h_total = (TH1D *)h1->Clone("h_total");
 
-        // double rho_ratio = 75.95/70.01;
+        htotal_projs.push_back(h_total);
         
-        // h5->Scale(rho_ratio);
-        // h6->Scale(rho_ratio*rho_ratio);
-        // h7->Scale(rho_ratio*rho_ratio);
-        
-        //h5->Add(h7, -1); // 2 perp cones
-        // h5->Add(h3_clones[iobs]->ProjectionY(), -2); // 1 perp cone
-        // h5_projs.push_back(h5); // sig-bkg
-        
-        // h6_projs.push_back(h6); // bkg-bkg
+        h2->Scale(0.5);
+        h3->Scale(0.5);
+        h3_projs.push_back(h3);
+        h2->Add(h3, -2);
+        h2_projs.push_back(h2);
 
-        // TH1D *h4 = (TH1D *)h_total->Clone("h4");
-        // h4->Add(h5, -1);
-        // h4->Add(h6, -1);
-        // h4_projs.push_back(h4); // all - bb - (2)sb
+        h1->Add(h2, -1);
+        h1->Add(h3, -1);
+        h1_projs.push_back(h1);
     }
 
     // Set to appropriate name
@@ -312,12 +302,12 @@ void plot_eec_data(string pt_min, string pt_max)
         hname = h1_projs[iobs]->GetName();
         hname += "_pt" + pt_min + "-" + pt_max;
         h1_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
-        // hname = h2_projs[iobs]->GetName();
-        // hname += "_pt" + pt_min + "-" + pt_max;
-        // h2_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
-        // hname = h3_projs[iobs]->GetName();
-        // hname += "_pt" + pt_min + "-" + pt_max;
-        // h3_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
+        hname = h2_projs[iobs]->GetName();
+        hname += "_pt" + pt_min + "-" + pt_max;
+        h2_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
+        hname = h3_projs[iobs]->GetName();
+        hname += "_pt" + pt_min + "-" + pt_max;
+        h3_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
         // hname = h4_projs[iobs]->GetName();
         // hname += "_pt" + pt_min + "-" + pt_max;
         // h4_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
@@ -331,31 +321,31 @@ void plot_eec_data(string pt_min, string pt_max)
 
     // Rebin
     std::vector<TH1 *> h1;
-    // std::vector<TH1 *> h2;
-    // std::vector<TH1 *> h3;
+    std::vector<TH1 *> h2;
+    std::vector<TH1 *> h3;
     // std::vector<TH1 *> h4;
     // std::vector<TH1 *> h5;
     // std::vector<TH1 *> h6;
-    // std::vector<TH1 *> htotal;
+    std::vector<TH1 *> htotal;
 
     std::cout << "checkpoint6" << endl;
     for (int iobs = 0; iobs < numjetaxes; iobs++)
     {
         std::string h1_newname = h1_projs[iobs]->GetName();
-        // std::string h2_newname = h2_projs[iobs]->GetName();
-        // std::string h3_newname = h3_projs[iobs]->GetName();
+        std::string h2_newname = h2_projs[iobs]->GetName();
+        std::string h3_newname = h3_projs[iobs]->GetName();
         // std::string h4_newname = h4_projs[iobs]->GetName();
         // std::string h5_newname = h5_projs[iobs]->GetName();
         // std::string h6_newname = h6_projs[iobs]->GetName();
-        // std::string htotal_newname = htotal_projs[iobs]->GetName();
+        std::string htotal_newname = htotal_projs[iobs]->GetName();
 
         h1.push_back(DivideByBinWidth((TH1 *)h1_projs[iobs]->Clone(h1_newname.c_str()))); // h1_newname + "rebin").c_str() );
-        // h2.push_back(DivideByBinWidth((TH1 *)h2_projs[iobs]->Clone(h2_newname.c_str()))); // h2_newname + "rebin").c_str() );
-        // h3.push_back(DivideByBinWidth((TH1 *)h3_projs[iobs]->Clone(h3_newname.c_str())));
+        h2.push_back(DivideByBinWidth((TH1 *)h2_projs[iobs]->Clone(h2_newname.c_str()))); // h2_newname + "rebin").c_str() );
+        h3.push_back(DivideByBinWidth((TH1 *)h3_projs[iobs]->Clone(h3_newname.c_str())));
         // h4.push_back(DivideByBinWidth((TH1 *)h4_projs[iobs]->Clone(h4_newname.c_str())));
         // h5.push_back(DivideByBinWidth((TH1 *)h5_projs[iobs]->Clone(h5_newname.c_str())));
         // h6.push_back(DivideByBinWidth((TH1 *)h6_projs[iobs]->Clone(h6_newname.c_str())));
-        // htotal.push_back(DivideByBinWidth((TH1 *)htotal_projs[iobs]->Clone(htotal_newname.c_str())));
+        htotal.push_back(DivideByBinWidth((TH1 *)htotal_projs[iobs]->Clone(htotal_newname.c_str())));
     }
 
     // Format color and style
@@ -374,7 +364,7 @@ void plot_eec_data(string pt_min, string pt_max)
     int markercolor7 = kBlack; // inclusive
     int markerstyle7 = 29;
 
-    TH1 *h_JetPt = ((TH2 *)f->Get("h_Nconst_JetPt_R04_trk10"))->ProjectionY();
+    TH1 *h_JetPt = ((TH2 *)f->Get("h_Nconst_JetPt_R04_trk10"))->ProjectionX();
     std::cout << "Number of jets from pT bins " << stof(pt_min) + 1 << "-" << stof(pt_max)<< ": ";
     int njets = h_JetPt->Integral((int)(stof(pt_min) + 1), (int)(stof(pt_max)));
     std::cout << njets << endl;
@@ -395,17 +385,17 @@ void plot_eec_data(string pt_min, string pt_max)
 
         addLegendInfo(l, ptbin);
         h1[iobs]->Scale(1.0 / njets);
-        // h2[iobs]->Scale(1.0 / njets);
-        // h3[iobs]->Scale(1.0 / njets);
+        h2[iobs]->Scale(1.0 / njets);
+        h3[iobs]->Scale(1.0 / njets);
         // h4[iobs]->Scale(1.0 / njets);
         // h5[iobs]->Scale(1.0 / njets);
         // h6[iobs]->Scale(1.0 / njets);
-        // htotal[iobs]->Scale(1.0 / njets);
+        htotal[iobs]->Scale(1.0 / njets);
 
-        FormatHist(l, h1[iobs], "raw", markercolor1, markerstyle1);
-        // FormatHist(l, h2[iobs], "sig-bkg", markercolor2, markerstyle2);
-        // FormatHist(l, h3[iobs], "bkg-bkg", markercolor3, markerstyle3);
-        // FormatHist(l, htotal[iobs], "all comb.", markercolor7, markerstyle7);
+        FormatHist(l, h1[iobs], "sig-sig", markercolor1, markerstyle1);
+        FormatHist(l, h2[iobs], "sig-bkg", markercolor2, markerstyle2);
+        FormatHist(l, h3[iobs], "bkg-bkg", markercolor3, markerstyle3);
+        FormatHist(l, htotal[iobs], "raw", markercolor7, markerstyle7);
         // FormatHist(l2, h4[iobs], "#splitline{all comb.}{#minus [0.5(jet-perp #minus 2perp-perp) + perp-perp]}", markercolor4, markerstyle4);
         // FormatHist(l2, h5[iobs], "0.5(jet-perp #minus 2perp-perp)", markercolor5, markerstyle5);
         // FormatHist(l2, h6[iobs], "perp-perp", markercolor6, markerstyle6);
@@ -415,23 +405,23 @@ void plot_eec_data(string pt_min, string pt_max)
         // maxy *= 1.2;
         // h1[iobs]->SetMaximum(maxy);
         h1[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
-        // h2[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
-        // h3[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
+        h2[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
+        h3[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
         // h4[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
         // h5[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
         // h6[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
-        // htotal[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
+        htotal[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
         h1[iobs]->GetYaxis()->SetRangeUser(0, 10);
         h1[iobs]->GetXaxis()->SetTitle("#it{R}_{L}");
         h1[iobs]->GetYaxis()->SetTitle("EEC");
 
         h1[iobs]->Draw("L");
-        // h2[iobs]->Draw("L same");
-        // h3[iobs]->Draw("L same");
+        h2[iobs]->Draw("L same");
+        h3[iobs]->Draw("L same");
         // h4[iobs]->Draw("L same");
         // h5[iobs]->Draw("L same");
         // h6[iobs]->Draw("L same");
-        // htotal[iobs]->Draw("L same");
+        htotal[iobs]->Draw("L same");
 
         // draw legend
         l->Draw("same");
@@ -447,12 +437,12 @@ void plot_eec_data(string pt_min, string pt_max)
         // Write rebinned histograms to root file
         f_out->cd();
         h1[iobs]->Write();
-        // h2[iobs]->Write();
-        // h3[iobs]->Write();
+        h2[iobs]->Write();
+        h3[iobs]->Write();
         // h4[iobs]->Write();
         // h5[iobs]->Write();
         // h6[iobs]->Write();
-        // htotal[iobs]->Write();
+        htotal[iobs]->Write();
     } // obs bins loop
 
     f->Close();
