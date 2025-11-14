@@ -445,14 +445,7 @@ class ProcessData_ENC(process_data_base.ProcessDataBase):
       deta_cut = -9999
 
     hname = 'h_jetcone{}_{}_JetPt_R{}_{}{}'
-    if self.do_rho_subtraction:
-      jet_pt = jet_pt_sub # jet_pt_sub stores subtracted jet pt for energy weight calculation and pt selection for there is a non-zero UE energy density
-      if jet.area() == 0:
-        return # NB: skip the zero area jets for now (also skip the perp-cone and jet-cone w.r.t. the zero area jets)
-    else:
-      jet_pt = jet.perp()
-
-    new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
+    new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt_sub, 2, 1, dphi_cut, deta_cut)
     for observable in self.observable_list:
 
       if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
@@ -469,14 +462,14 @@ class ProcessData_ENC(process_data_base.ProcessDataBase):
 
             if 'ENC' in observable:
               # print('hname is',hname.format(cone_R, observable + str(ipoint), jetR_label, obs_label))
-              getattr(self, hname.format(cone_R, observable + str(ipoint), jetR_label, obs_label, suffix)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
-              getattr(self, hname.format(cone_R, observable + str(ipoint) + 'Pt', jetR_label, obs_label, suffix)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]) # NB: fill pt*RL
+              getattr(self, hname.format(cone_R, observable + str(ipoint), jetR_label, obs_label, suffix)).Fill(jet_pt_sub, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
+              getattr(self, hname.format(cone_R, observable + str(ipoint) + 'Pt', jetR_label, obs_label, suffix)).Fill(jet_pt_sub, jet_pt_sub*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]) # NB: fill pt*RL
 
             if ipoint==2 and 'EEC_noweight' in observable:
-              getattr(self, hname.format(cone_R, observable, jetR_label, obs_label, suffix)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index])
+              getattr(self, hname.format(cone_R, observable, jetR_label, obs_label, suffix)).Fill(jet_pt_sub, new_corr.correlator(ipoint).rs()[index])
 
             if ipoint==2 and 'EEC_weight2' in observable:
-              getattr(self, hname.format(cone_R, observable, jetR_label, obs_label, suffix)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], pow(new_corr.correlator(ipoint).weights()[index],2))
+              getattr(self, hname.format(cone_R, observable, jetR_label, obs_label, suffix)).Fill(jet_pt_sub, new_corr.correlator(ipoint).rs()[index], pow(new_corr.correlator(ipoint).weights()[index],2))
 
 ##################################################################
 if __name__ == '__main__':

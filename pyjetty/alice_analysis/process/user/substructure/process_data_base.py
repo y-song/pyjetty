@@ -332,10 +332,7 @@ class ProcessDataBase(process_base.ProcessBase):
         jets_selected_unsub = jet_selector(jets_unsub)
 
         if self.do_rho_subtraction:
-          if not (self.do_jetcone or self.do_perpcone):
-            self.analyze_jets(jets_selected_unsub, jetR, R_max = self.max_distance, rho_bge = rho)
-          else:
-            self.analyze_jets(jets_selected_unsub, jetR, R_max = self.max_distance, rho_bge = rho, parts = fj_particles)
+          self.analyze_jets(jets_selected_unsub, jetR, R_max = self.max_distance, rho_bge = rho, parts = fj_particles)
         else:
           if not (self.do_jetcone or self.do_perpcone):
             self.analyze_jets(jets_selected, jetR, R_max = self.max_distance)
@@ -353,14 +350,14 @@ class ProcessDataBase(process_base.ProcessBase):
       is_jet_selected = True
       
       # leading track selection
-      if self.leading_pt > 0:
-        constituents = fj.sorted_by_pt(jet.constituents())
-        if constituents[0].perp() < self.leading_pt:
-          is_jet_selected = False
+      # if self.leading_pt > 0:
+      #   constituents = fj.sorted_by_pt(jet.constituents())
+      #   if constituents[0].perp() < self.leading_pt:
+      #     is_jet_selected = False
       
-      # if rho subtraction, require jet pt > 5 after subtration
+      # if rho subtraction, require jet pt > 40 after subtration
       if self.do_rho_subtraction and rho_bge > 0:
-        if jet.perp()-rho_bge*jet.area() < 5:
+        if jet.perp()-rho_bge*jet.area() < 40:
           # FIX ME: not sure whether to apply the area selection or not yet. jet.area() > 0.6*np.pi*jetR*jetR
           is_jet_selected = False
 
@@ -375,10 +372,10 @@ class ProcessDataBase(process_base.ProcessBase):
   def analyze_jets(self, jets_selected, jetR, R_max = None, rho_bge = 0, parts = None):
   
     # reselect jets after background subtraction (for PbPb case)
-    # jets_reselected = self.reselect_jets(jets_selected, jetR, rho_bge = rho_bge)
+    jets_reselected = self.reselect_jets(jets_selected, jetR, rho_bge = rho_bge)
 
     suffix = ''
-    result = [self.analyze_accepted_jet(jet, jetR, suffix, rho_bge, parts) for jet in jets_selected]
+    result = [self.analyze_accepted_jet(jet, jetR, suffix, rho_bge, parts) for jet in jets_reselected]
 
   #---------------------------------------------------------------
   # Fill histograms
