@@ -166,6 +166,15 @@ class ProcessEmbedENC(process_base.ProcessBase):
             setattr(self, name, h)
             getattr(self, hist_list_name).append(h)
             
+            name = 'h_area_JetPt_ch_combined_R{}'.format(R_label)
+            pt_bins = linbins(0,200,200)
+            area_bins = linbins(0,1,100)
+            h = ROOT.TH2D(name, name, 200, pt_bins, 100, area_bins)
+            h.GetXaxis().SetTitle('p_{T, comb jet}')
+            h.GetYaxis().SetTitle('Area')
+            setattr(self, name, h)
+            getattr(self, hist_list_name).append(h)
+            
             # rho_local and mult histograms
             for observable in ['rho_local', 'mult']:
                 for thrd in self.thrd_list:
@@ -173,8 +182,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
                     thrd_label = 'trk{:.0f}'.format(thrd*10)
                     
                     if observable == 'rho_local':
-                        obs_nbins = 100
-                        obs_bins = linbins(0,500,obs_nbins)
+                        obs_nbins = 120
+                        obs_bins = linbins(0,600,obs_nbins)
                     else:
                         obs_nbins = 50
                         obs_bins = linbins(0,50,obs_nbins)
@@ -212,7 +221,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                         name = 'h_mbcone{}_{}_JetPt_ch_combined_R{}_{}'.format(coneR, observable, R_label, thrd_label)
                         print('Initialize histogram',name)
                         h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
-                        h.GetXaxis().SetTitle('p_{T, pp jet}')
+                        h.GetXaxis().SetTitle('p_{T, comb jet}')
                         h.GetYaxis().SetTitle(observable)
                         setattr(self, name, h)
                         getattr(self, hist_list_name).append(h)
@@ -221,7 +230,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                         name = 'h_wta_mbcone{}_{}_JetPt_ch_combined_R{}_{}'.format(coneR, observable, R_label, thrd_label)
                         print('Initialize histogram',name)
                         h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
-                        h.GetXaxis().SetTitle('p_{T, pp jet}')
+                        h.GetXaxis().SetTitle('p_{T, comb jet}')
                         h.GetYaxis().SetTitle(observable)
                         setattr(self, name, h)
                         getattr(self, hist_list_name).append(h)
@@ -413,7 +422,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         for jetR in self.jetR_list:
             jetR_str = str(jetR).replace('.', '')
             
-            jet_selector = fj.SelectorPtMin(5) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
+            jet_selector = fj.SelectorPtMin(10) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
             setattr(self, "jet_selector_R%s" % jetR_str, jet_selector)
 
     #---------------------------------------------------------------
@@ -425,6 +434,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         jet_selector = getattr(self, "jet_selector_R%s" % jetR_str)
         jet_def = getattr(self, "jet_def_R%s" % jetR_str)
         track_selector_ch = getattr(self, "track_selector_ch")
+        jet_pt_thrd = self.check_jet_pt_thrd()
 
         print("Nevt(PbPb):", self.nEvents)
         print("Nevt(MC): ", self.nEvents_mc)
@@ -441,10 +451,16 @@ class ProcessEmbedENC(process_base.ProcessBase):
             jets_pp = fj.sorted_by_pt( jet_selector(cs_pp.inclusive_jets()) )
             
             # no MC jet with pT > 40 GeV, go to next MC
-            if (len(jets_pp) == 0 or jets_pp[0].perp() < 40):
+            # if (len(jets_pp) == 0 or jets_pp[0].perp() < 40):
+            #     iev_mc += 1
+            #     continue
+            
+            # if leading jet pT is over the thrd for the given pTHat bin, go to next MC
+            if (len(jets_pp) > 0 and jets_pp[0].perp() > jet_pt_thrd):
+                print("skip due to high weight")
                 iev_mc += 1
                 continue
-            
+
             # check MC event info
             mc_vtx = self.df_evts_mc.iloc[iev_mc]["z_vtx_reco"]
             # print("MC ievt:", iev_mc, ", vtx =", mc_vtx)
@@ -537,7 +553,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
             iev_mc += 1
 
     #---------------------------------------------------------------
-    # Take pp leading jet, embed it into PbPb, and assume the combined leading jet is matched to the pp leading jet
+    # Take pp jets, and embed them into PbPb
     #---------------------------------------------------------------
     def analyze_jets(self):
             
@@ -562,6 +578,9 @@ class ProcessEmbedENC(process_base.ProcessBase):
         if (len(jets_combined_select) == 0):
             return        
         
+        if (self.has_real_PbPb_jets(jets_combined_select) == True):
+            return
+        
         R_label = str(self.jetR_list[0]).replace('.', '')# + 'Scaled'
         
         #-------------------------------------------------------------
@@ -580,29 +599,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
             self.fill_2perpcone(jet_combined, jet_combined_wta, self.jetR_list[0], self.coneR_list[0])
             self.fill_mbcone(jet_combined, jet_combined_wta, self.jetR_list[0], self.coneR_list[0])
             self.fill_2mbcone(jet_combined, jet_combined_wta, self.jetR_list[0], self.coneR_list[0])
-    
-    #---------------------------------------------------------------
-    # Fill jet constituents for unmatched jets
-    #---------------------------------------------------------------
-    def fill_jet_histograms(self, hname, jet):
-
-        constituents = fj.sorted_by_pt(jet.constituents())
-
-        for thrd in self.thrd_list:
-            c_select = fj.vectorPJ()
-            thrd_label = 'trk{:.0f}'.format(thrd*10)
-            for c in constituents:
-              if c.pt() < thrd:
-                break
-              c_select.append(c) # NB: use the break statement since constituents are already sorted
-
-            dphi_cut = -9999
-            deta_cut = -9999
-            new_corr = ecorrel.CorrelatorBuilder(c_select, jet.perp(), self.npoint, self.npower, dphi_cut, deta_cut)
-
-            for ipoint in range(2, self.npoint+1):
-                for index in range(new_corr.correlator(ipoint).rs().size()):              
-                    getattr(self,hname.format(ipoint, thrd_label)).Fill(jet.perp(), new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
 
     #---------------------------------------------------------------
     # Fill perp cone for matched combined jets
@@ -611,6 +607,11 @@ class ProcessEmbedENC(process_base.ProcessBase):
 
         R_label = str(jetR).replace('.', '')# + 'Scaled'
 
+        hname = 'h_area_JetPt_ch_combined_R{}'.format(R_label)
+        if self.debug_level > 0:
+            print('area',jet_combined.area(),'rho',self.rho,'combined jet pt after subtraction',jet_combined.perp()-self.rho*jet_combined.area())
+        getattr(self, hname).Fill(jet_combined.perp()-self.rho*jet_combined.area(), jet_combined.area())
+        
         # fill EEC for matched comb jet using comb jet (after rho subtraction) for jet pT
         hname = 'h_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
         self.fill_ENC_histograms(hname, jet_combined, None)
@@ -891,7 +892,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         hname = 'h_jetcone_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
         self.fill_ENC_histograms(hname, jet_combined, parts_in_jetcone)
 
-        hname = 'h_jetcone{}_{{}}_JetPt_ch_combined_R{}_{{}}'.format(coneR, R_label)
+        hname = 'h_wta_jetcone{}_{{}}_JetPt_ch_combined_R{}_{{}}'.format(coneR, R_label)
         self.fill_rho_local_histograms(hname, jet_combined, coneR, parts_in_wta_jetcone)
 
         hname = 'h_wta_jetcone_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
@@ -980,6 +981,20 @@ class ProcessEmbedENC(process_base.ProcessBase):
         else:
             return False
 
+    #---------------------------------------------------------------
+    # Check if the PbPb event that we embed into contains real jets
+    #---------------------------------------------------------------
+    def has_real_PbPb_jets(self, jets):
+        for jet in jets:
+            pt_PbPb_jet = 0
+            for track in jet.constituents():
+                if track.user_index() == 0: # track is from PbPb event
+                    pt_PbPb_jet += track.pt()
+            # condition for a real PbPb jet        
+            if ((pt_PbPb_jet - self.rho*jet.area() > 40) and (jet.area > 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0])):
+                return True
+        return False
+            
     #---------------------------------------------------------------
     # Return pt-fraction of tracks in jet_pp that are contained in jet_combined
     #---------------------------------------------------------------
@@ -1077,7 +1092,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
         pt_hat_bin = int(self.input_file_mc.split('/')[len(self.input_file_mc.split('/'))-4]) # depends on exact format of input_file name
         with open(pt_hat_yaml_file, 'r') as stream:
             pt_hat_yaml = yaml.safe_load(stream)
-
             pt_hat = pt_hat_yaml[pt_hat_bin]
             # print("pt hat bin : " + str(pt_hat_bin))
             # print("pt hat weight : " + str(pt_hat))
@@ -1087,6 +1101,18 @@ class ProcessEmbedENC(process_base.ProcessBase):
             for h in getattr(self, hist_list_name):
                 h.Scale(pt_hat)
         
+    def check_jet_pt_thrd(self):
+        jet_pt_thrd_yaml_file = "/global/cfs/cdirs/alice/youqi/jet_pt_thrd.yaml"
+        pt_hat_bin = int(self.input_file_mc.split('/')[len(self.input_file_mc.split('/'))-4]) # depends on exact format of input_file name
+        jet_pt_thrd = 1000.0
+        if (pt_hat_bin <= 10):
+            with open(jet_pt_thrd_yaml_file, 'r') as stream:
+                jet_pt_thrd_yaml = yaml.safe_load(stream)
+                jet_pt_thrd = jet_pt_thrd_yaml[pt_hat_bin]
+                print("pt hat bin :" + str(pt_hat_bin))
+                print("jet pt thrd: " + str(jet_pt_thrd))
+        return jet_pt_thrd
+
     def process_data(self):
     
         self.start_time = time.time()
