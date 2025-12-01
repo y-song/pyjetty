@@ -49,4 +49,4 @@ source /global/cfs/cdirs/alice/youqi/pyjetty_env.sh
 
 # Run python script via pipenv
 cd ${BASR_DIR}/pyjetty/pyjetty/alice_analysis
-python /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/pythia_gen_ENC_mb.py -c /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/pp/process_pythia8_gen_mb.yaml -f $INPUT_FILE --py-pthatmin 30 --py-seed $SEED -o $OUTPUT_DIR
+python /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/pythia_gen_embed_analyze_all_combined_jets.py -c /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/PbPb/process_data.yaml -f $INPUT_FILE --py-pthatmin 28 --py-seed $SEED -o $OUTPUT_DIR
