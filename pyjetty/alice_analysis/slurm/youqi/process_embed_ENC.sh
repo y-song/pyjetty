@@ -56,4 +56,4 @@ source /global/cfs/cdirs/alice/youqi/pyjetty_env.sh
 
 # Run python script via pipenv
 cd ${BASR_DIR}/pyjetty/pyjetty/alice_analysis
-python /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/process_embed_ENC.py -c /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/PbPb/process_data.yaml -f $INPUT_FILE -o $OUTPUT_DIR -fmc $INPUT_FILE_MC
+python /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/process_embed_analyze_all_combined_jets.py -c /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/PbPb/process_data.yaml -f $INPUT_FILE -o $OUTPUT_DIR -fmc $INPUT_FILE_MC
