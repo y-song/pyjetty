@@ -174,6 +174,14 @@ class ProcessEmbedENC(process_base.ProcessBase):
             h.GetYaxis().SetTitle('Area')
             setattr(self, name, h)
             getattr(self, hist_list_name).append(h)
+
+            name = 'h_vz_JetPt_ch_PbPb_R{}'.format(R_label)
+            pt_bins = linbins(0,200,200)
+            vz_bins = linbins(0,10,100)
+            h = ROOT.TH2D(name, name, 200, pt_bins, 100, vz_bins)
+            h.GetXaxis().SetTitle('p_{T, PbPb jet}')
+            h.GetYaxis().SetTitle('|v_{z}|')
+            setattr(self, name, h)
             
             # rho_local and mult histograms
             for observable in ['rho_local', 'mult']:
@@ -450,11 +458,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
             cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
             jets_pp = fj.sorted_by_pt( jet_selector(cs_pp.inclusive_jets()) )
             
-            # no MC jet with pT > 40 GeV, go to next MC
-            # if (len(jets_pp) == 0 or jets_pp[0].perp() < 40):
-            #     iev_mc += 1
-            #     continue
-            
             # if leading jet pT is over the thrd for the given pTHat bin, go to next MC
             if (len(jets_pp) > 0 and jets_pp[0].perp() > jet_pt_thrd):
                 print("skip due to high weight")
@@ -462,7 +465,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 continue
 
             # check MC event info
-            mc_vtx = self.df_evts_mc.iloc[iev_mc]["z_vtx_reco"]
+            mc_vtx = self.df_evts_mc.iloc[iev_mc]["z_vtx_gen"]
             # print("MC ievt:", iev_mc, ", vtx =", mc_vtx)
 
             # require the SE to be within 1 cm of z_vtx of MC, and has not been used for SE or ME
@@ -525,6 +528,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
             # read in a SE
             self.fj_particles_combined_beforeCS = self.df_fjparticles.iloc[se_iev]
             used_ev.append(se_iev)
+            self.se_vtx = se_vtx
             # read in a ME
             self.fj_particles_combined_beforeCS_mb1 = self.df_fjparticles.iloc[me_iev]
             used_ev.append(me_iev)
@@ -580,7 +584,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         
         if (self.has_real_PbPb_jets(jets_combined_select) == True):
             return
-        
+
         R_label = str(self.jetR_list[0]).replace('.', '')# + 'Scaled'
         
         #-------------------------------------------------------------
@@ -985,14 +989,24 @@ class ProcessEmbedENC(process_base.ProcessBase):
     # Check if the PbPb event that we embed into contains real jets
     #---------------------------------------------------------------
     def has_real_PbPb_jets(self, jets):
+
+        R_label = str(self.jetR_list[0]).replace('.', '')
+        hname = 'h_vz_JetPt_ch_PbPb_R{}'.format(R_label)
+        
         for jet in jets:
+
             pt_PbPb_jet = 0
             for track in jet.constituents():
                 if track.user_index() == 0: # track is from PbPb event
                     pt_PbPb_jet += track.pt()
+            pt_PbPb_jet_sub = pt_PbPb_jet - self.rho*jet.area()
+            # fill histogram of PbPb SE vz vs PbPb jet pT
+            getattr(self, hname).Fill(pt_PbPb_jet_sub, abs(self.se_vtx))
             # condition for a real PbPb jet        
-            if ((pt_PbPb_jet - self.rho*jet.area() > 40) and (jet.area > 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0])):
+            if ((pt_PbPb_jet_sub > 30) and (jet.area() > 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0])):
+                print("pt_PbPb_jet - self.rho*jet.area() = ", pt_PbPb_jet_sub)
                 return True
+        
         return False
             
     #---------------------------------------------------------------
@@ -1109,7 +1123,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
             with open(jet_pt_thrd_yaml_file, 'r') as stream:
                 jet_pt_thrd_yaml = yaml.safe_load(stream)
                 jet_pt_thrd = jet_pt_thrd_yaml[pt_hat_bin]
-                print("pt hat bin :" + str(pt_hat_bin))
+                print("pt hat bin : " + str(pt_hat_bin))
                 print("jet pt thrd: " + str(jet_pt_thrd))
         return jet_pt_thrd
 
@@ -1140,9 +1154,11 @@ class ProcessEmbedENC(process_base.ProcessBase):
         # Use IO helper class to convert detector-level ROOT TTree into
         # a SeriesGroupBy object of fastjet particles per event
         print('--- {} seconds ---'.format(time.time() - self.start_time))
-        io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle', use_ev_id_ext=False, is_det_level=True)
+        # io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle', use_ev_id_ext=False, is_det_level=True)
+        io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle_gen', use_ev_id_ext=False)
         self.df_fjparticles_mc = io.load_data(m=self.m)
-        self.df_evts_mc = io.track_df[['iev','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
+        # self.df_evts_mc = io.track_df[['iev','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
+        self.df_evts_mc = io.track_df[['iev','z_vtx_gen']].drop_duplicates().set_index('iev', drop=False)
         self.nEvents_mc = len(self.df_fjparticles_mc.index)
         self.nTracks_mc = len(io.track_df.index)
         self.pt_hat_bin = int(self.input_file_mc.split('/')[len(self.input_file_mc.split('/'))-4]) # depends on exact format of input_file name

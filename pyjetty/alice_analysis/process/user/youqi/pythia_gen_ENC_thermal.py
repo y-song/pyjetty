@@ -405,7 +405,7 @@ class PythiaGenENCThermal(process_base.ProcessBase):
             
             cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
             jets_pp = fj.sorted_by_pt( jet_selector(cs_pp.inclusive_jets()) )
-                
+            
             if (len(jets_pp) == 0):
                 continue
             
@@ -433,7 +433,7 @@ class PythiaGenENCThermal(process_base.ProcessBase):
 
 
     #---------------------------------------------------------------
-    # Take pp leading jet, embed it into thermal, and assume the combined leading jet is matched to the pp leading jet
+    # Analyze combined jets
     #---------------------------------------------------------------
     def analyze_jets(self):
 
