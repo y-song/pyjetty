@@ -465,7 +465,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 continue
 
             # check MC event info
-            mc_vtx = self.df_evts_mc.iloc[iev_mc]["z_vtx_gen"]
+            mc_vtx = self.df_evts_mc.iloc[iev_mc]["z_vtx_reco"]
             # print("MC ievt:", iev_mc, ", vtx =", mc_vtx)
 
             # require the SE to be within 1 cm of z_vtx of MC, and has not been used for SE or ME
@@ -997,7 +997,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
 
             pt_PbPb_jet = 0
             for track in jet.constituents():
-                if track.user_index() == 0: # track is from PbPb event
+                # print("user index:", track.user_index()) # -99XXXX for PbPb, -1 for ghosts, non-negative number for PYTHIA
+                if track.user_index() < 0: # track is from PbPb event
                     pt_PbPb_jet += track.pt()
             pt_PbPb_jet_sub = pt_PbPb_jet - self.rho*jet.area()
             # fill histogram of PbPb SE vz vs PbPb jet pT
@@ -1135,15 +1136,14 @@ class ProcessEmbedENC(process_base.ProcessBase):
         
         # Use IO helper class to convert detector-level ROOT TTree into
         # a SeriesGroupBy object of fastjet particles per event
-        print('--- {} seconds ---'.format(time.time() - self.start_time))
         io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle', is_pp=False)
         self.df_fjparticles = io.load_data(m=self.m, offset_indices=True)
         self.df_evts = io.track_df[['iev','centrality','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
         self.nEvents = len(self.df_fjparticles.index)
         self.nTracks = len(io.track_df.index)
-        print(self.df_evts)
+        # print(self.df_evts)
 
-        print('--- {} seconds ---'.format(time.time() - self.start_time))
+        print('Done with process_data()')
 
     def process_mc(self):
     
@@ -1153,18 +1153,17 @@ class ProcessEmbedENC(process_base.ProcessBase):
         
         # Use IO helper class to convert detector-level ROOT TTree into
         # a SeriesGroupBy object of fastjet particles per event
-        print('--- {} seconds ---'.format(time.time() - self.start_time))
-        # io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle', use_ev_id_ext=False, is_det_level=True)
-        io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle_gen', use_ev_id_ext=False)
+        io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle', use_ev_id_ext=False, is_det_level=True)
+        # io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle_gen', use_ev_id_ext=False)
         self.df_fjparticles_mc = io.load_data(m=self.m)
-        # self.df_evts_mc = io.track_df[['iev','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
-        self.df_evts_mc = io.track_df[['iev','z_vtx_gen']].drop_duplicates().set_index('iev', drop=False)
+        self.df_evts_mc = io.track_df[['iev','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
+        # self.df_evts_mc = io.track_df[['iev','z_vtx_gen']].drop_duplicates().set_index('iev', drop=False)
         self.nEvents_mc = len(self.df_fjparticles_mc.index)
         self.nTracks_mc = len(io.track_df.index)
         self.pt_hat_bin = int(self.input_file_mc.split('/')[len(self.input_file_mc.split('/'))-4]) # depends on exact format of input_file name
-        print(self.df_evts_mc)
+        # print(self.df_evts_mc)
 
-        print('--- {} seconds ---'.format(time.time() - self.start_time))
+        print('Done with process_mc()')
 
 ################################################################
 if __name__ == '__main__':

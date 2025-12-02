@@ -176,6 +176,14 @@ class ProcessEmbedENC(process_base.ProcessBase):
             setattr(self, name, h)
             getattr(self, hist_list_name).append(h)
             
+            name = 'h_vz_JetPt_ch_PbPb_R{}'.format(R_label)
+            pt_bins = linbins(0,200,200)
+            vz_bins = linbins(0,10,100)
+            h = ROOT.TH2D(name, name, 200, pt_bins, 100, vz_bins)
+            h.GetXaxis().SetTitle('p_{T, PbPb jet}')
+            h.GetYaxis().SetTitle('|v_{z}|')
+            setattr(self, name, h)
+            
             # rho_local and mult histograms
             for observable in ['rho_local', 'mult']:
                 for thrd in self.thrd_list:
@@ -532,6 +540,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
             # read in a SE
             self.fj_particles_combined_beforeCS = self.df_fjparticles.iloc[se_iev]
             used_ev.append(se_iev)
+            self.se_vtx = se_vtx
             # read in a ME
             self.fj_particles_combined_beforeCS_mb1 = self.df_fjparticles.iloc[me_iev]
             used_ev.append(me_iev)
@@ -543,6 +552,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
             self.parts_pythia_ch_jet = fj.vectorPJ()
             for ijet in range(0, len(jets_pp)):
                 for p in jets_pp[ijet].constituents():
+                    # print("user index:", p.user_index()) # positive number
                     self.parts_pythia_ch_jet.push_back(p)
             [self.fj_particles_combined_beforeCS.push_back(p) for p in self.parts_pythia_ch_jet]
 
@@ -996,15 +1006,25 @@ class ProcessEmbedENC(process_base.ProcessBase):
     # Check if the PbPb event that we embed into contains real jets
     #---------------------------------------------------------------
     def has_real_PbPb_jets(self, jets):
+
+        R_label = str(self.jetR_list[0]).replace('.', '')
+        hname = 'h_vz_JetPt_ch_PbPb_R{}'.format(R_label)
+        
         for jet in jets:
+
             pt_PbPb_jet = 0
             for track in jet.constituents():
-                if track.user_index() == 0: # track is from PbPb event
+                # print("user index:", track.user_index()) # -99XXXX for PbPb, -1 for ghosts, positive number for PYTHIA
+                if track.user_index() < 0: # track is from PbPb event
                     pt_PbPb_jet += track.pt()
+            pt_PbPb_jet_sub = pt_PbPb_jet - self.rho*jet.area()
+            # fill histogram of PbPb SE vz vs PbPb jet pT
+            getattr(self, hname).Fill(pt_PbPb_jet_sub, abs(self.se_vtx))
             # condition for a real PbPb jet        
-            if ((pt_PbPb_jet - self.rho*jet.area() > 30) and (jet.area() > 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0])):
-                print("pt_PbPb_jet - self.rho*jet.area() = ", pt_PbPb_jet - self.rho*jet.area())
+            if ((pt_PbPb_jet_sub > 30) and (jet.area() > 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0])):
+                print("pt_PbPb_jet - self.rho*jet.area() = ", pt_PbPb_jet_sub)
                 return True
+        
         return False
             
     #---------------------------------------------------------------
@@ -1121,7 +1141,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         self.df_evts = io.track_df[['iev','centrality','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
         self.nEvents = len(self.df_fjparticles.index)
         self.nTracks = len(io.track_df.index)
-        print(self.df_evts)
+        # print(self.df_evts)
 
         print('--- {} seconds ---'.format(time.time() - self.start_time))
 
