@@ -67,7 +67,10 @@ class ProcessIO(common_base.CommonBase):
         pass # somehow for PbPb there is no 'ev_id_ext'
       
     # Set relevant columns of event tree
-    self.event_columns = self.unique_identifier + ['z_vtx_reco', 'is_ev_rej']
+    if self.is_pp and not is_det_level:
+      self.event_columns = self.unique_identifier + ['z_vtx_gen', 'is_ev_rej']
+    else:
+      self.event_columns = self.unique_identifier + ['z_vtx_reco', 'is_ev_rej']      
     if not self.is_pp:
       self.event_columns += ['centrality']
       self.min_centrality = min_cent
@@ -331,7 +334,10 @@ class ProcessIO(common_base.CommonBase):
 
       # Create tree with event char
       title = self.event_tree_name
-      branchdict = {"is_ev_rej": int, "run_number": int, "ev_id": int, "z_vtx_reco": float}
+      if (self.is_pp and not self.is_det_level):
+        branchdict = {"is_ev_rej": int, "run_number": int, "ev_id": int, "z_vtx_gen": float}        
+      else:
+        branchdict = {"is_ev_rej": int, "run_number": int, "ev_id": int, "z_vtx_reco": float}
       if is_jetscape:
         branchdict["event_plane_angle"] = float
       f.mktree(name=title, branch_types=branchdict, title=title)
@@ -341,6 +347,11 @@ class ProcessIO(common_base.CommonBase):
                         "ev_id": self.event_df_orig["ev_id"],
                         "z_vtx_reco": self.event_df_orig["z_vtx_reco"],
                         "event_plane_angle": self.event_df_orig["event_plane_angle"] } )
+      elif (self.is_pp and not self.is_det_level):
+        f[title].extend( {"is_ev_rej": self.event_df_orig["is_ev_rej"], 
+                        "run_number": self.event_df_orig["run_number"], 
+                        "ev_id": self.event_df_orig["ev_id"],
+                        "z_vtx_gen": self.event_df_orig["z_vtx_gen"] } )
       else:
         f[title].extend( {"is_ev_rej": self.event_df_orig["is_ev_rej"], 
                         "run_number": self.event_df_orig["run_number"], 
@@ -360,9 +371,9 @@ class ProcessIO(common_base.CommonBase):
   #---------------------------------------------------------------
   def group_fjparticles(self, m, offset_indices=False, group_by_evid=True, random_mass=False, min_pt=0.):
 
-    print('is_ENC on?',self.is_ENC)
-    print('is_det on?',self.is_det_level)
-    print('debug1\n',self.track_df)
+    # print('is_ENC on?',self.is_ENC)
+    # print('is_det on?',self.is_det_level)
+    # print('debug1\n',self.track_df)
     if group_by_evid:
       print("Transform the track dataframe into a series object of fastjet particles per event...")
 
@@ -370,8 +381,8 @@ class ProcessIO(common_base.CommonBase):
       #     track_df_grouped is a DataFrameGroupBy object with one track dataframe per event
       track_df_grouped = None
       track_df_grouped = self.track_df.groupby(['iev'] + self.event_columns)
-      print('debug2',type(track_df_grouped))
-      print('debug2\n',track_df_grouped.aggregate(np.sum))
+      # print('debug2',type(track_df_grouped))
+      # print('debug2\n',track_df_grouped.aggregate(np.sum))
       # print('debug2',track_df_grouped.columns['ParticlePID'].values)
     
       # (ii) Transform the DataFrameGroupBy object to a SeriesGroupBy of fastjet particles
@@ -384,20 +395,20 @@ class ProcessIO(common_base.CommonBase):
         if self.is_det_level:
           df_fjparticles_aux = track_df_grouped.apply(
           self.get_particles_mc_index, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
-          print('debug3',df_fjparticles)
-          print('debug3 aux: mcid',df_fjparticles_aux)
+          # print('debug3',df_fjparticles)
+          # print('debug3 aux: mcid',df_fjparticles_aux)
           df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticleMCIndex": df_fjparticles_aux})
         else:
           df_fjparticles_aux = track_df_grouped.apply(
           self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
-          print('debug3',df_fjparticles)
-          print('debug3 aux: pid',df_fjparticles_aux)
+          # print('debug3',df_fjparticles)
+          # print('debug3 aux: pid',df_fjparticles_aux)
           df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_aux})
       else:
         df_fjparticles = track_df_grouped.apply(
         self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
-        print('debug3', type(df_fjparticles))
-        print('debug3\n',df_fjparticles)
+        # print('debug3', type(df_fjparticles))
+        # print('debug3\n',df_fjparticles)
             
       # df_fjparticles = pandas.DataFrame({"fj_particle": track_df_grouped.apply(
       #   self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt), "ParticleMCIndex": track_df_grouped["ParticleMCIndex"]})
