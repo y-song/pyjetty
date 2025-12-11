@@ -175,13 +175,12 @@ class ProcessEmbedENC(process_base.ProcessBase):
             setattr(self, name, h)
             getattr(self, hist_list_name).append(h)
 
-            name = 'h_vz_JetPt_ch_PbPb_R{}'.format(R_label)
-            pt_bins = linbins(0,200,200)
-            vz_bins = linbins(0,10,100)
-            h = ROOT.TH2D(name, name, 200, pt_bins, 100, vz_bins)
+            name = 'h_JetPt_ch_PbPb_JetPt_ch_combined_R{}'.format(R_label)
+            h = ROOT.TH2D(name, name, 200, pt_bins, 200, pt_bins)
             h.GetXaxis().SetTitle('p_{T, PbPb jet}')
-            h.GetYaxis().SetTitle('|v_{z}|')
+            h.GetYaxis().SetTitle('p_{T, comb jet}')
             setattr(self, name, h)
+            getattr(self, hist_list_name).append(h)
             
             # rho_local and mult histograms
             for observable in ['rho_local', 'mult']:
@@ -416,6 +415,10 @@ class ProcessEmbedENC(process_base.ProcessBase):
             setattr(self, "jet_def_wta_R%s" % jetR_str, jet_def_wta)
             print(jet_def_wta)
             
+            # jet_def_PbPb = fj.JetDefinition(fj.antikt_algorithm, jetR)
+            # setattr(self, "jet_def_PbPb_R%s" % jetR_str, jet_def_PbPb)
+            # print(jet_def_PbPb)
+        
         # pwarning('max eta for particles after hadronization set to', self.max_eta_hadron)
         if self.rm_trk_min_pt:
             track_selector_ch = fj.SelectorPtMin(0)
@@ -527,8 +530,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
             
             # read in a SE
             self.fj_particles_combined_beforeCS = self.df_fjparticles.iloc[se_iev]
+            self.fj_particles_PbPb_beforeCS = self.df_fjparticles.iloc[se_iev]
             used_ev.append(se_iev)
-            self.se_vtx = se_vtx
             # read in a ME
             self.fj_particles_combined_beforeCS_mb1 = self.df_fjparticles.iloc[me_iev]
             used_ev.append(me_iev)
@@ -575,6 +578,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         jets_combined_select = fj.vectorPJ()
 
         for i in range(0, len(jets_combined)):
+            # print("ijet, area, pt, eta, phi:", i, ",", jets_combined[i].area(), ",", jets_combined[i].perp(), ",", jets_combined[i].eta(), ",", jets_combined[i].phi())
             pt_sub = jets_combined[i].perp()-self.rho*jets_combined[i].area()
             if (pt_sub > pt_sub_cut and jets_combined[i].area() > area_cut):
                 jets_combined_select.push_back(jets_combined[i])
@@ -990,26 +994,51 @@ class ProcessEmbedENC(process_base.ProcessBase):
     #---------------------------------------------------------------
     def has_real_PbPb_jets(self, jets):
 
-        R_label = str(self.jetR_list[0]).replace('.', '')
-        hname = 'h_vz_JetPt_ch_PbPb_R{}'.format(R_label)
+        has_real_PbPb_jets = False
         
-        for jet in jets:
+        jetR_str = str(self.jetR_list[0]).replace('.', '')
+        jet_def = getattr(self, "jet_def_R%s" % jetR_str)
+        track_selector_ch = getattr(self, "track_selector_ch")
+        jet_selector = getattr(self, "jet_selector_R%s" % jetR_str)
+        cs_PbPb = fj.ClusterSequenceArea(track_selector_ch(self.fj_particles_PbPb_beforeCS), jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
+        area_cut = 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0]
+        pt_sub_cut = 40
 
-            pt_PbPb_jet = 0
-            for track in jet.constituents():
-                # print("user index:", track.user_index()) # -99XXXX for PbPb, -1 for ghosts, non-negative number for PYTHIA
-                if track.user_index() < 0: # track is from PbPb event
-                    pt_PbPb_jet += track.pt()
-            pt_PbPb_jet_sub = pt_PbPb_jet - self.rho*jet.area()
-            # fill histogram of PbPb SE vz vs PbPb jet pT
-            getattr(self, hname).Fill(pt_PbPb_jet_sub, abs(self.se_vtx))
-            # condition for a real PbPb jet        
-            if ((pt_PbPb_jet_sub > 30) and (jet.area() > 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0])):
-                print("pt_PbPb_jet - self.rho*jet.area() = ", pt_PbPb_jet_sub)
-                return True
+        jets_PbPb = fj.sorted_by_pt( jet_selector(cs_PbPb.inclusive_jets()) )        
+
+        for i in range(0, len(jets_PbPb)):
+            pt_sub = jets_PbPb[i].perp()-self.rho*jets_PbPb[i].area()
+            if (pt_sub > pt_sub_cut and jets_PbPb[i].area() > area_cut):
+                has_real_PbPb_jets = True
+                break
+                
+        return has_real_PbPb_jets
+    
+        # hname = 'h_JetPt_ch_PbPb_JetPt_ch_combined_R{}'.format(R_label)
+        # jet_selector = getattr(self, "jet_selector_R%s" % R_label)
+        # jet_def_PbPb = getattr(self, "jet_def_PbPb_R%s" % R_label)
         
-        return False
-            
+        # for jet in jets:
+
+        #     print("combined jet pT:", jet.perp())
+        #     fj_particles_PbPb_jet = fj.vectorPJ()
+        #     for track in jet.constituents():
+        #         # print("user index:", track.user_index()) # -99XXXX for PbPb, -1 for ghosts, non-negative number for PYTHIA
+        #         if track.user_index() < -1: # track is from PbPb event
+        #             fj_particles_PbPb_jet.push_back(track)
+        #     # for each combined jet, take its PbPb constituents, rerun cs to cluster into a pure PbPb jet, so that we get its area
+        #     cs_PbPb = fj.ClusterSequenceArea(fj_particles_PbPb_jet, jet_def_PbPb, fj.AreaDefinition(fj.active_area_explicit_ghosts))
+        #     PbPb_jets = fj.sorted_by_pt(jet_selector(cs_PbPb.inclusive_jets()))
+        #     if (len(PbPb_jets) == 0):
+        #         continue
+        #     PbPb_jet = PbPb_jets[0]
+        #     # fill histogram of PbPb jet pT vs combined jet pT
+        #     getattr(self, hname).Fill(jet.perp()-self.rho*jet.area(), PbPb_jet.perp()-self.rho*PbPb_jet.area())
+        #     # condition for a real PbPb jet        
+        #     if ((PbPb_jet.perp()-self.rho*PbPb_jet.area() > 40) and (PbPb_jet.area() > 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0])):
+        #         print("pt_PbPb_jet - rho*area_PbPb_jet =", PbPb_jet.perp()-self.rho*PbPb_jet.area())
+        #         has_real_PbPb_jets = True
+    
     #---------------------------------------------------------------
     # Return pt-fraction of tracks in jet_pp that are contained in jet_combined
     #---------------------------------------------------------------
