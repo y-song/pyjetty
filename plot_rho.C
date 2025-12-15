@@ -116,12 +116,13 @@ TLine *drawHoriLine(double x1, double x2, double y1, int color, int linestyle = 
 
 void addLegendInfo(TLegend *l, TString ptbin)
 {
-    l->SetTextSize(0.045);
-    l->AddEntry("NULL", "PYTHIA8 leading jets + PbPb 0-10%", "h");
-    l->AddEntry("NULL", "#sqrt{#it{s}} = 5.02 TeV, #hat{#it{p}}_{T} > 30 GeV", "h");
-    l->AddEntry("NULL", "charged jets, anti-#it{k}_{T}, #it{R} = 0.4", "h");
-    l->AddEntry("NULL", ptbin, "h");
     l->SetTextSize(0.037);
+    // l->AddEntry("NULL", "PYTHIA jets + thermal, no det. effects", "h");
+    l->AddEntry("NULL", "PYTHIA8 jets + PbPb 0#minus10%", "h");
+    // l->AddEntry("NULL", "ALICE PbPb 0#minus10%, #sqrt{#it{s}_{NN}} = 5.02 TeV", "h");
+    l->AddEntry("NULL", "#sqrt{#it{s}} = 5.02 TeV, #hat{#it{p}}_{T} > 28 GeV", "h");
+    l->AddEntry("NULL", "charged jets, anti-#it{k}_{T}, #it{R} = 0.2", "h");
+    l->AddEntry("NULL", ptbin, "h");
     l->SetBorderSize(0);
     l->SetFillStyle(0); // turn legend transparent
 }
@@ -149,30 +150,36 @@ void plot_rho(string pt_min, string pt_max)
 
     // string one("");
     // const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
-    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/44519927/AnalysisResultsFinal.root";
+    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/46422776/AnalysisResultsFinal.root";
+    const string jetR = "02";
+    const string jetRPoint = "0.2";
     TFile *f = new TFile(TString(infile), "READ");
-    std::string add_name = "_test";//PbPb_embed_rho";
+    std::string add_name = "_46422776";
     std::cout << "output name will be " << add_name << std::endl;
     std::string outdir = "";
-    std::string outfile = outdir + "AnalysisResultsOut" + add_name + ".root";
+    std::string outfile = outdir + "rho_embed_PbPb_R" + jetR + "_" + pt_min + "_" + pt_max + add_name + ".root";
     TFile *f_out = new TFile(outfile.c_str(), "RECREATE");
 
-    const string jetR = "04";
-    const std::string hist_names[] = {"jetcone0.4_", "perpcone0.4_", "mbcone0.4_"};
+
+    const std::string hist_names[] = {"jetcone"+jetRPoint+"_", "perpcone"+jetRPoint+"_", "mbcone"+jetRPoint+"_"};
     std::cout << "checkpoint1" << std::endl;
 
     std::cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
 
     std::cout << "R = " << jetR << endl;
 
-    const std::string h1_name = "h_" + hist_names[0] + "matched_rho_local_JetPt_ch_R" + jetR + "_trk10";
-    const std::string h2_name = "h_" + hist_names[1] + "matched_rho_local_JetPt_ch_R" + jetR + "_trk10";
-    const std::string h3_name = "h_" + hist_names[2] + "matched_rho_local_JetPt_ch_R" + jetR + "_trk10";
+    const std::string h1_name = "h_" + hist_names[0] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
+    const std::string h2_name = "h_" + hist_names[1] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
+    const std::string h3_name = "h_" + hist_names[2] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
+
+    std::cout << "h1: " << h1_name.c_str() << endl;
+    std::cout << "h2: " << h2_name.c_str() << endl;
+    // std::cout << "h3: " << h3_name.c_str() << endl;
 
     std::cout << "checkpoint2" << endl;
 
     // define pt related variables
-    TString ptbin = pt_min + " < #it{p}_{T}^{ch. jet} < " + pt_max + " GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.7"; //;TString::Format("%s < #it{p}_{T}^{ch. jet} < %s GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
+    TString ptbin = pt_min + " < #it{p}_{T}^{combined jet, sub.} < " + pt_max + " GeV"; //;TString::Format("%s < #it{p}_{T}^{ch. jet} < %s GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
     std::string pdf_outdir = "";
 
     TH2 *h1_clone = (TH2 *)f->Get(h1_name.c_str())->Clone(Form("%s_clone", h1_name.c_str()));
@@ -192,14 +199,11 @@ void plot_rho(string pt_min, string pt_max)
 
     // Set to appropriate name
     std::string hname;
-    hname = h1_proj->GetName();
-    hname += "_pt" + pt_min + "-" + pt_max;
+    hname = "h_rho_jetcone_R" + jetR + "_" + pt_min + "_" + pt_max;
     h1_proj->SetNameTitle(hname.c_str(), hname.c_str());
-    hname = h2_proj->GetName();
-    hname += "_pt" + pt_min + "-" + pt_max;
+    hname = "h_rho_perpcone_R" + jetR + "_" + pt_min + "_" + pt_max;
     h2_proj->SetNameTitle(hname.c_str(), hname.c_str());
-    hname = h3_proj->GetName();
-    hname += "_pt" + pt_min + "-" + pt_max;
+    hname = "h_rho_mbcone_R" + jetR + "_" + pt_min + "_" + pt_max;
     h3_proj->SetNameTitle(hname.c_str(), hname.c_str());
 
     // Rebin
@@ -223,9 +227,9 @@ void plot_rho(string pt_min, string pt_max)
     int markercolor7 = kBlack; // inclusive
     int markerstyle7 = 29;
 
-    TH1 *h_matched_JetPt_ch_pp = ((TH2 *)f->Get(("h_matched_JetPt_ch_combined_vs_pp_R" + jetR).c_str()))->ProjectionY();
-    std::cout << "Number of jets from pp pT bins " << stof(pt_min) / 2 + 1 << "-" << stof(pt_max) / 2 << ": ";
-    int njets = h_matched_JetPt_ch_pp->Integral((int)(stof(pt_min) / 2 + 1), (int)(stof(pt_max) / 2));
+    TH1 *h_JetPt = (TH1 *)f->Get(("h_JetPt_ch_combined_R" + jetR).c_str());//((TH2 *)f->Get(("h_JetPt_ch_combined_vs_pp_R" + jetR).c_str()))->ProjectionY();
+    std::cout << "Number of jets from pT bins " << stof(pt_min) / 2 + 1 << "-" << stof(pt_max) / 2 << ": ";
+    double njets = h_JetPt->Integral((int)(stof(pt_min) / 2 + 1), (int)(stof(pt_max) / 2));
     std::cout << njets << endl;
 
     // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
@@ -234,7 +238,7 @@ void plot_rho(string pt_min, string pt_max)
     ProcessCanvas(c);
     c->cd();
 
-    TLegend *l = new TLegend(0.5097168, 0.400741, 0.8562155, 0.8885185, "");
+    TLegend *l = new TLegend(0.50, 0.48, 0.8562155, 0.8885185, "");
 
     addLegendInfo(l, ptbin);
     h1->Scale(1.0 / njets);
@@ -250,11 +254,15 @@ void plot_rho(string pt_min, string pt_max)
     std::cout << "the max is " << maxy << endl;
     maxy *= 1.2;
     h1->SetMaximum(maxy);
-    h1->GetXaxis()->SetRangeUser(0., 300.);
-    h2->GetXaxis()->SetRangeUser(0., 300.);
-    h3->GetXaxis()->SetRangeUser(0., 300.);
-    h1->GetYaxis()->SetRangeUser(0, 0.025);
+    h1->GetXaxis()->SetRangeUser(0., 600.);
+    h2->GetXaxis()->SetRangeUser(0., 600.);
+    h3->GetXaxis()->SetRangeUser(0., 500.);
+    h1->GetYaxis()->SetRangeUser(0, 0.05);
     h1->GetXaxis()->SetTitle("#rho_{local} [GeV]");
+
+    h1->Rebin(2);
+    h2->Rebin(2);
+    h3->Rebin(2);
 
     h1->Draw("L");
     h2->Draw("L same");
@@ -263,7 +271,7 @@ void plot_rho(string pt_min, string pt_max)
     // draw legend
     l->Draw("same");
 
-    std::string fname = pdf_outdir + "pt" + pt_min + '-' + pt_max + "_R" + jetR + add_name + ".pdf";
+    std::string fname = outdir + "rho_embed_PbPb_R" + jetR + "_" + pt_min + "_" + pt_max + add_name + ".pdf";
     const char *fnamec = fname.c_str();
     c->SaveAs(fnamec);
     delete c;
