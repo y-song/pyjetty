@@ -210,7 +210,7 @@ class ProcessIO(common_base.CommonBase):
         event_criteria = 'is_ev_rej == 0 and centrality > @self.min_centrality and centrality < @self.max_centrality'
       if self.event_plane_range:
         event_criteria += ' and event_plane_angle > @self.event_plane_range[0] and event_plane_angle < @self.event_plane_range[1]'
-      event_df = self.event_df_orig.query(event_criteria)
+      event_df = self.event_df_orig.query(event_criteria).copy()
       event_df.reset_index(drop=True)
       event_df['iev'] = np.arange(0, event_df.shape[0])
 
