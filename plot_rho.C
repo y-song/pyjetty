@@ -114,14 +114,14 @@ TLine *drawHoriLine(double x1, double x2, double y1, int color, int linestyle = 
     return fhoriline;
 }
 
-void addLegendInfo(TLegend *l, TString ptbin)
+void addLegendInfo(TLegend *l, TString ptbin, TString jetRPoint)
 {
     l->SetTextSize(0.037);
     // l->AddEntry("NULL", "PYTHIA jets + thermal, no det. effects", "h");
-    l->AddEntry("NULL", "PYTHIA8 jets + PbPb 0#minus10%", "h");
+    l->AddEntry("NULL", "PYTHIA8 jets + ALICE PbPb 0#minus10%", "h");
     // l->AddEntry("NULL", "ALICE PbPb 0#minus10%, #sqrt{#it{s}_{NN}} = 5.02 TeV", "h");
     l->AddEntry("NULL", "#sqrt{#it{s}} = 5.02 TeV, #hat{#it{p}}_{T} > 28 GeV", "h");
-    l->AddEntry("NULL", "charged jets, anti-#it{k}_{T}, #it{R} = 0.2", "h");
+    l->AddEntry("NULL", "charged jets, anti-#it{k}_{T}, #it{R} = " + jetRPoint, "h");
     l->AddEntry("NULL", ptbin, "h");
     l->SetBorderSize(0);
     l->SetFillStyle(0); // turn legend transparent
@@ -160,8 +160,7 @@ void plot_rho(string pt_min, string pt_max)
     std::string outfile = outdir + "rho_embed_PbPb_R" + jetR + "_" + pt_min + "_" + pt_max + add_name + ".root";
     TFile *f_out = new TFile(outfile.c_str(), "RECREATE");
 
-
-    const std::string hist_names[] = {"jetcone"+jetRPoint+"_", "perpcone"+jetRPoint+"_", "mbcone"+jetRPoint+"_"};
+    const std::string hist_names[] = {"jetcone"+jetRPoint+"_", "perpcone"+jetRPoint+"_", "mbcone"+jetRPoint+"_", "wta_jetcone"+jetRPoint+"_"};
     std::cout << "checkpoint1" << std::endl;
 
     std::cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
@@ -171,10 +170,10 @@ void plot_rho(string pt_min, string pt_max)
     const std::string h1_name = "h_" + hist_names[0] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
     const std::string h2_name = "h_" + hist_names[1] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
     const std::string h3_name = "h_" + hist_names[2] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
+    const std::string h4_name = "h_" + hist_names[3] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
 
     std::cout << "h1: " << h1_name.c_str() << endl;
     std::cout << "h2: " << h2_name.c_str() << endl;
-    // std::cout << "h3: " << h3_name.c_str() << endl;
 
     std::cout << "checkpoint2" << endl;
 
@@ -185,10 +184,12 @@ void plot_rho(string pt_min, string pt_max)
     TH2 *h1_clone = (TH2 *)f->Get(h1_name.c_str())->Clone(Form("%s_clone", h1_name.c_str()));
     TH2 *h2_clone = (TH2 *)f->Get(h2_name.c_str())->Clone(Form("%s_clone", h2_name.c_str()));
     TH2 *h3_clone = (TH2 *)f->Get(h3_name.c_str())->Clone(Form("%s_clone", h3_name.c_str()));
+    TH2 *h4_clone = (TH2 *)f->Get(h4_name.c_str())->Clone(Form("%s_clone", h4_name.c_str()));
 
     h1_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max)); // apply cut on jet pt
     h2_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
     h3_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
+    h4_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
 
     std::cout << "checkpoint4" << endl;
 
@@ -196,6 +197,7 @@ void plot_rho(string pt_min, string pt_max)
     TH1D *h1_proj = h1_clone->ProjectionY();
     TH1D *h2_proj = h2_clone->ProjectionY();
     TH1D *h3_proj = h3_clone->ProjectionY();
+    TH1D *h4_proj = h4_clone->ProjectionY();
 
     // Set to appropriate name
     std::string hname;
@@ -205,11 +207,14 @@ void plot_rho(string pt_min, string pt_max)
     h2_proj->SetNameTitle(hname.c_str(), hname.c_str());
     hname = "h_rho_mbcone_R" + jetR + "_" + pt_min + "_" + pt_max;
     h3_proj->SetNameTitle(hname.c_str(), hname.c_str());
+    hname = "h_rho_wta_jetcone_R" + jetR + "_" + pt_min + "_" + pt_max;
+    h4_proj->SetNameTitle(hname.c_str(), hname.c_str());
 
     // Rebin
     TH1 *h1 = DivideByBinWidth((TH1 *)h1_proj->Clone(h1_proj->GetName()));
     TH1 *h2 = DivideByBinWidth((TH1 *)h2_proj->Clone(h2_proj->GetName()));
     TH1 *h3 = DivideByBinWidth((TH1 *)h3_proj->Clone(h3_proj->GetName()));
+    TH1 *h4 = DivideByBinWidth((TH1 *)h4_proj->Clone(h4_proj->GetName()));
 
     // Format color and style
     int markercolor1 = kBlue; // 1
@@ -218,7 +223,7 @@ void plot_rho(string pt_min, string pt_max)
     int markerstyle2 = 33;
     int markercolor3 = kRed;
     int markerstyle3 = 21;
-    int markercolor4 = kBlue + 1;
+    int markercolor4 = kTeal;
     int markerstyle4 = 24;
     int markercolor5 = kGreen + 3;
     int markerstyle5 = 24;
@@ -240,33 +245,41 @@ void plot_rho(string pt_min, string pt_max)
 
     TLegend *l = new TLegend(0.50, 0.48, 0.8562155, 0.8885185, "");
 
-    addLegendInfo(l, ptbin);
+    addLegendInfo(l, ptbin, jetRPoint);
     h1->Scale(1.0 / njets);
     h2->Scale(1.0 / njets);
     h3->Scale(1.0 / njets);
-    std::cout << "Mean values: " << h1->GetMean() << ", " << h2->GetMean() << ", " << h3->GetMean() << endl;
+    h4->Scale(1.0 / njets);
+    std::cout << "Mean values: " << h1->GetMean() << ", " << h2->GetMean() << ", " << h3->GetMean() << ", " << h4->GetMean() << endl;
 
     FormatHist(l, h1, "jet cone", markercolor1, markerstyle1);
+    FormatHist(l, h4, "WTA jet cone", markercolor4, markerstyle4);
     FormatHist(l, h2, "perp cone", markercolor2, markerstyle2);
     FormatHist(l, h3, "ME cone", markercolor3, markerstyle3);
     double arr_of_maxes[] = {h1->GetMaximum(), h2->GetMaximum()};
     double &maxy = *std::max_element(arr_of_maxes, arr_of_maxes + 2); // bc there are 4 elements in arr_of_maxes
     std::cout << "the max is " << maxy << endl;
     maxy *= 1.2;
-    h1->SetMaximum(maxy);
-    h1->GetXaxis()->SetRangeUser(0., 600.);
-    h2->GetXaxis()->SetRangeUser(0., 600.);
-    h3->GetXaxis()->SetRangeUser(0., 500.);
-    h1->GetYaxis()->SetRangeUser(0, 0.05);
-    h1->GetXaxis()->SetTitle("#rho_{local} [GeV]");
 
     h1->Rebin(2);
     h2->Rebin(2);
     h3->Rebin(2);
+    h4->Rebin(2);
 
-    h1->Draw("L");
+    h1->GetXaxis()->SetRangeUser(0., 300.);
+    h2->GetXaxis()->SetRangeUser(0., 300.);
+    h3->GetXaxis()->SetRangeUser(0., 300.);
+    h4->GetXaxis()->SetRangeUser(0., 300.);
+    h1->GetYaxis()->SetRangeUser(0, 0.05);
+    h1->GetXaxis()->SetTitle("#rho_{local} [GeV]");
+
+    // h1->SetFillStyle(3002);
+    // h1->SetFillColor(kBlue);
+    h1->Draw("hist");
+    h1->Draw("L same");
     h2->Draw("L same");
     h3->Draw("L same");
+    h4->Draw("L same");
 
     // draw legend
     l->Draw("same");
@@ -282,6 +295,7 @@ void plot_rho(string pt_min, string pt_max)
     h1->Write();
     h2->Write();
     h3->Write();
+    h4->Write();
 
     f->Close();
     delete f;
