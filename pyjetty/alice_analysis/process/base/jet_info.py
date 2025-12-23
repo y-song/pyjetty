@@ -30,6 +30,11 @@ class JetInfo(common_base.CommonBase):
     self.particle_truth = None
     self.charge= 1000.
 
+    self.sub_jet_pt = None
+    self.sub_jet_y = None
+    self.sub_jet_phi = None
+    self.sub_jet_area = None
+    
   def clear_jet_info(self):
     self.matching_candidates.clear()
     self.closest_jet = None
