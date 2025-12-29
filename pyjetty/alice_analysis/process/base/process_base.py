@@ -72,10 +72,11 @@ class ProcessBase(common_base.CommonBase):
       
     self.jetR_list = config['jetR']
     self.debug_level = config['debug_level']
+    self.do_constituent_subtraction = False
+    self.do_ics = False
 
     # Check if constituent subtractor is included, and initialize it if so
-    self.do_constituent_subtraction = False
-    if 'constituent_subtractor' in config:
+    if (('constituent_subtractor' in config) and (config['do_cs'])):
       print('Constituent subtractor is enabled.')
       self.do_constituent_subtraction = True
       constituent_subtractor = config['constituent_subtractor']
@@ -89,6 +90,22 @@ class ProcessBase(common_base.CommonBase):
       self.ghost_area = constituent_subtractor['ghost_area']
     else:
       print('Constituent subtractor is disabled.')
+
+    # Check if ICS is included, and initialize it if so
+    if (('ics' in config) and (config['do_ics'])):
+      print('ICS is enabled.')
+      self.do_ics = True
+      iterative_constituent_subtractor = config['ics']
+      
+      self.max_distances = iterative_constituent_subtractor['max_distances']
+      self.alphas = iterative_constituent_subtractor['alphas']
+      if 'max_eta' in iterative_constituent_subtractor:
+        self.max_eta = iterative_constituent_subtractor['max_eta']
+      self.max_pt_correct = iterative_constituent_subtractor['max_pt_correct']
+      self.ghost_area = iterative_constituent_subtractor['ghost_area']
+      self.jet_median_selector_R = iterative_constituent_subtractor['jet_median_selector_R']
+    else:
+      print('ICS is disabled.')
       
     # Set reclustering algorithm (optional)
     if 'reclustering_algorithm' in config:

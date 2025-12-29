@@ -33,6 +33,7 @@ import ecorrel
 from pyjetty.alice_analysis.process.base import process_base
 from pyjetty.alice_analysis.process.base import jet_info
 from pyjetty.mputils.csubtractor import CEventSubtractor
+from pyjetty.mputils.icsubtractor import ICEventSubtractor
 from pyjetty.alice_analysis.process.base import process_io
 
 # Prevent ROOT from stealing focus when plotting
@@ -170,8 +171,8 @@ class ProcessEmbed(process_base.ProcessBase):
 
             name = 'h_dpt_JetPt_pp_matched_R{}'.format(R_label)
             pt_bins = linbins(0,200,200)
-            dpt_bins = linbins(-50, 50, 100)
-            h = ROOT.TH2D(name, name, 200, pt_bins, 100, dpt_bins)
+            dpt_bins = linbins(-100, 100, 200)
+            h = ROOT.TH2D(name, name, 200, pt_bins, 200, dpt_bins)
             h.GetXaxis().SetTitle('p_{T, pp det}')
             h.GetYaxis().SetTitle('#Deltap_{T} = p_{T, combined sub} - p_{T, pp det}')
             setattr(self, name, h)
@@ -179,8 +180,8 @@ class ProcessEmbed(process_base.ProcessBase):
 
             name = 'h_dpt_JetPt_combined_sub_matched_R{}'.format(R_label)
             pt_bins = linbins(0,200,200)
-            dpt_bins = linbins(-50, 50, 100)
-            h = ROOT.TH2D(name, name, 200, pt_bins, 100, dpt_bins)
+            dpt_bins = linbins(-100, 100, 200)
+            h = ROOT.TH2D(name, name, 200, pt_bins, 200, dpt_bins)
             h.GetXaxis().SetTitle('p_{T, combined sub}')
             h.GetYaxis().SetTitle('#Deltap_{T} = p_{T, combined sub} - p_{T, pp det}')
             setattr(self, name, h)
@@ -188,8 +189,8 @@ class ProcessEmbed(process_base.ProcessBase):
 
             name = 'h_dpt_JetPt_combined_sub_all_R{}'.format(R_label)
             pt_bins = linbins(0,200,200)
-            dpt_bins = linbins(-50, 50, 100)
-            h = ROOT.TH2D(name, name, 200, pt_bins, 100, dpt_bins)
+            dpt_bins = linbins(-100, 100, 200)
+            h = ROOT.TH2D(name, name, 200, pt_bins, 200, dpt_bins)
             h.GetXaxis().SetTitle('p_{T, combined sub}')
             h.GetYaxis().SetTitle('#Deltap_{T} = p_{T, combined sub} - p_{T, pp det}')
             setattr(self, name, h)
@@ -295,7 +296,7 @@ class ProcessEmbed(process_base.ProcessBase):
                     self.parts_pythia_ch_jet.push_back(p)
             [self.fj_particles_combined_beforeCS.push_back(p) for p in self.parts_pythia_ch_jet]
 
-            self.constituent_subtractor = CEventSubtractor(max_distance=self.max_distance, alpha=self.alpha, max_eta=self.max_eta, bge_rho_grid_size=self.bge_rho_grid_size, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area, distance_type=fjcontrib.ConstituentSubtractor.deltaR)
+            self.constituent_subtractor = ICEventSubtractor(max_distances=fjcontrib.vectorDouble(self.max_distances), alphas=fjcontrib.vectorDouble(self.alphas), max_eta=self.max_eta, jet_median_selector_R=self.jet_median_selector_R, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area)
             self.fj_particles_combined_afterCS = self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS)
             self.rho = self.constituent_subtractor.bge_rho.rho()
 

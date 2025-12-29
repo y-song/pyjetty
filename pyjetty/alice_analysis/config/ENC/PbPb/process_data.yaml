@@ -2,19 +2,17 @@
 process_observables: ['jet_ENC_RL', 'jet_pt']
 
 jetR: [0.4]
+coneR: [0.4]
 
 debug_level: 0
 
 rm_trk_min_pt: False
-
-thrd: [1.0]
-
-coneR: [0.4]
-
-do_rho_subtraction: True
+do_rho_subtraction: False
+do_cs: False
+do_ics: True
 do_jet_cone: False
-do_perpcone: False
-do_2cones: False
+do_perpcone: True
+do_2cones: True
 
 constituent_subtractor:
   max_distance: 0.1
@@ -24,6 +22,14 @@ constituent_subtractor:
   bge_rho_grid_size: 1.0
   max_pt_correct: 100
   ghost_area: 0.01
+
+ics:
+  max_distances: [0.25, 0.15]
+  alphas: [2.0, 2.0]
+  max_eta: 0.9
+  jet_median_selector_R: 0.4
+  max_pt_correct: 2.8
+  ghost_area: 0.0025
 
 # Observable block
 jet_ENC_RL:
