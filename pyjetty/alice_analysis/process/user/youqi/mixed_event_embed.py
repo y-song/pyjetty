@@ -385,11 +385,11 @@ class ProcessEmbedENC(process_base.ProcessBase):
             # assuming they are charged final states...
             self.parts_pythia_ch = fj.vectorPJ(self.df_fjparticles_mc.iloc[iev_mc])
 
-            cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
-            jets_pp = fj.sorted_by_pt( jet_selector(cs_pp.inclusive_jets()) )
+            self.cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
+            self.jets_pp = fj.sorted_by_pt( jet_selector(self.cs_pp.inclusive_jets()) )
             
             # if leading jet pT is over the thrd for the given pTHat bin, go to next MC
-            if (len(jets_pp) > 0 and jets_pp[0].perp() > jet_pt_thrd):
+            if (len(self.jets_pp) > 0 and self.jets_pp[0].perp() > jet_pt_thrd):
                 print("skip due to high weight")
                 iev_mc += 1
                 continue
@@ -437,8 +437,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
             # Add particles from all pythia jets to the list
             self.parts_pythia_ch_jet = fj.vectorPJ()
             sig_counter = 1
-            for ijet in range(0, len(jets_pp)):
-                for p in jets_pp[ijet].constituents():
+            for ijet in range(0, len(self.jets_pp)):
+                for p in self.jets_pp[ijet].constituents():
                     p.set_user_index(sig_counter)
                     sig_counter += 1
                     self.parts_pythia_ch_jet.push_back(p)
@@ -479,7 +479,9 @@ class ProcessEmbedENC(process_base.ProcessBase):
         jets_combined_unsub = fj.vectorPJ()
         # Create a lookup dictionary for fj_particles_combined_beforeCS
         p_beforeCS_dict = {p.user_index(): p for p in self.fj_particles_combined_beforeCS}
-        
+        # Store all ClusterSequences to keep them alive
+        self.cs_combined_unsub_list = []
+
         for i in range(0, len(jets_combined)):
             jet_combined = jets_combined[i]
             parts_combined_unsub = fj.vectorPJ()
@@ -493,6 +495,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 p_beforeCS = p_beforeCS_dict.get(p.user_index())
                 parts_combined_unsub.push_back(p_beforeCS)
             cs_combined_unsub = fj.ClusterSequenceArea(parts_combined_unsub, jet_def_manual, fj.AreaDefinition(fj.active_area_explicit_ghosts))
+            self.cs_combined_unsub_list.append(cs_combined_unsub)
             jet_combined_unsub_array = fj.sorted_by_pt( jet_selector(cs_combined_unsub.inclusive_jets()) )
             if (len(jet_combined_unsub_array) == 0):
                 continue
@@ -509,7 +512,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         if (len(jets_combined_unsub) == 0):
             return
 
-        R_label = str(self.jetR_list[0]).replace('.', '')# + 'Scaled'
+        R_label = str(self.jetR_list[0]).replace('.', '')
         
         #-------------------------------------------------------------
         # loop over all selected combined jets
@@ -525,6 +528,9 @@ class ProcessEmbedENC(process_base.ProcessBase):
             self.fill_2perpcone(jet_combined, None, self.jetR_list[0], self.coneR_list[0])
             self.fill_mbcone(jet_combined, None, self.jetR_list[0], self.coneR_list[0])
             self.fill_2mbcone(jet_combined, None, self.jetR_list[0], self.coneR_list[0])
+
+            self.cs_combined_unsub_list.clear()
+            del self.cs_combined_unsub_list
 
     #---------------------------------------------------------------
     # Fill perp cone for matched combined jets
@@ -1013,6 +1019,9 @@ class ProcessEmbedENC(process_base.ProcessBase):
             for h in getattr(self, hist_list_name):
                 h.Scale(pt_hat)
         
+    #---------------------------------------------------------------
+    # Get the maximum jet pT allowed given the event pt_hat
+    #---------------------------------------------------------------
     def check_jet_pt_thrd(self):
         jet_pt_thrd_yaml_file = "/global/cfs/cdirs/alice/youqi/jet_pt_thrd.yaml"
         pt_hat_bin = int(self.input_file_mc.split('/')[len(self.input_file_mc.split('/'))-4]) # depends on exact format of input_file name
@@ -1025,22 +1034,9 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 print("jet pt thrd: " + str(jet_pt_thrd))
         return jet_pt_thrd
 
-    def process_data(self):
-        
-        # Use IO helper class to convert detector-level ROOT TTree into
-        # a SeriesGroupBy object of fastjet particles per event
-        io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle', is_pp=False)
-        self.df_fjparticles = io.load_data(m=self.m, offset_indices=True)
-        self.df_evts = io.track_df[['iev','centrality','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
-        self.nEvents = len(self.df_fjparticles.index)
-        self.nTracks = len(io.track_df.index)
-        # Pre-extract arrays for vectorized operations
-        self.iev_array = self.df_evts['iev'].values
-        self.vz_array = self.df_evts['z_vtx_reco'].values
-        self.centrality_array = self.df_evts['centrality'].values
-
-        print('Done with process_data()')
-
+    #---------------------------------------------------------------
+    # Construct a mixed event using tracks from various real events
+    #---------------------------------------------------------------
     def get_mixed_event(self, se_iev):
 
         ntrks_target = (int)(self.hmult.GetRandom())
@@ -1079,6 +1075,9 @@ class ProcessEmbedENC(process_base.ProcessBase):
 
         return mixed_event
 
+    #---------------------------------------------------------------
+    # Get a triplet of event numbers with appropriate event topologies, one for SE and two for MEs
+    #---------------------------------------------------------------
     def get_se_and_me(self, mc_vtx):
         
         se_mask = (np.abs(self.vz_array - mc_vtx) < 1.0)
@@ -1097,6 +1096,23 @@ class ProcessEmbedENC(process_base.ProcessBase):
     
         return se_iev, me_candidates[0], me_candidates[1]
     
+    def process_data(self):
+        
+        # Use IO helper class to convert detector-level ROOT TTree into
+        # a SeriesGroupBy object of fastjet particles per event
+        io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle', is_pp=False)
+        self.df_fjparticles = io.load_data(m=self.m, offset_indices=True)
+        self.df_evts = io.track_df[['iev','centrality','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
+        self.nEvents = len(self.df_fjparticles.index)
+        self.nTracks = len(io.track_df.index)
+        # Pre-extract arrays for vectorized operations
+        self.iev_array = self.df_evts['iev'].values
+        self.vz_array = self.df_evts['z_vtx_reco'].values
+        self.centrality_array = self.df_evts['centrality'].values
+
+        print('Done with process_data()')
+
+
     def process_mc(self):
     
         # Use IO helper class to convert detector-level ROOT TTree into
