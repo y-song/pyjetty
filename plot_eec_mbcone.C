@@ -144,10 +144,6 @@ TH1 *DivideByBinWidth(TH1 *input_hist)
 void plot_eec_mbcone(string pt_min, string pt_max)
 {
 
-    // gROOT->SetBatch(); //prevents plots from showing up
-    // std::string JOB_ID = std::to_string(27163555);
-    // cout << "JOB_ID IS : " << JOB_ID << endl;
-
     gStyle->SetOptStat(0);
     SetStyle();
     Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
@@ -155,20 +151,21 @@ void plot_eec_mbcone(string pt_min, string pt_max)
     Double_t colors[16] = {kRed, kGreen + 2, kBlue, kBlack, kGreen + 1, kBlue + 1, kRed + 2, kGreen + 2, kBlue + 2, kRed + 3, kGreen + 3, kBlue + 3, kOrange + 1, kViolet + 1, kYellow + 1, kCyan + 1};
 
     // const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/AnalysisResults.root";
-    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/46422776/AnalysisResultsFinal.root";
+    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/47429695/AnalysisResultsFinal.root";
     const string jetR = "02";
     const string jetRPoint = "0.2";
     TFile *f = new TFile(TString(infile), "READ");
-    std::string add_name = "_46422776";
+    std::string add_name = "_47429695";
     std::cout << "output name will be " << add_name << std::endl;
     std::string outdir = "";
     std::string outfile = outdir + "eec_mbcone_embed_PbPb_R" + jetR + "_" + pt_min + "_" + pt_max + add_name + ".root";
     TFile *f_out = new TFile(outfile.c_str(), "RECREATE");
 
-    const int numjetaxes = 3;
+    const int numjetaxes = 2;
 
-    const std::string jetaxis_names[] = {"jet", "jetcone", "wta_jetcone"};
-    const std::string hist_names[] = {"", "jetcone_", "wta_jetcone_", "jet_mbcone"+jetRPoint+"_", "jetcone_mbcone"+jetRPoint+"_", "wta_jetcone_mbcone"+jetRPoint+"_", "2mbcone"+jetRPoint+"_", "2mbcone"+jetRPoint+"_", "wta_2mbcone"+jetRPoint+"_"};
+    const std::string jetaxis_names[] = {"jet", "jetcone"};//, "wta_jetcone"};
+    const std::string hist_names[] = {"", "jetcone_", "jet_mbcone"+jetRPoint+"_", "jetcone_mbcone"+jetRPoint+"_", "2mbcone"+jetRPoint+"_", "2mbcone"+jetRPoint+"_"};
+    // const std::string hist_names[] = {"", "jetcone_", "wta_jetcone_", "jet_mbcone"+jetRPoint+"_", "jetcone_mbcone"+jetRPoint+"_", "wta_jetcone_mbcone"+jetRPoint+"_", "2mbcone"+jetRPoint+"_", "2mbcone"+jetRPoint+"_", "wta_2mbcone"+jetRPoint+"_"};
     std::cout << "checkpoint1" << std::endl;
 
     std::cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
@@ -188,10 +185,10 @@ void plot_eec_mbcone(string pt_min, string pt_max)
         const std::string h1_name = "h_" + hist_names[iobs] + "ENC2_ss_JetPt_ch_combined_R" + jetR + "_trk10";
         const std::string h2_name = "h_" + hist_names[iobs] + "ENC2_sb_JetPt_ch_combined_R" + jetR + "_trk10";
         const std::string h3_name = "h_" + hist_names[iobs] + "ENC2_bb_JetPt_ch_combined_R" + jetR + "_trk10";
-        const std::string h4_name = "h_" + hist_names[iobs + 3] + "ENC2_ss_JetPt_ch_combined_R" + jetR + "_trk10";
-        const std::string h5_name = "h_" + hist_names[iobs + 3] + "ENC2_sb_JetPt_ch_combined_R" + jetR + "_trk10";
-        const std::string h6_name = "h_" + hist_names[iobs + 3] + "ENC2_bb_JetPt_ch_combined_R" + jetR + "_trk10";
-        const std::string h7_name = "h_" + hist_names[iobs + 6] + "ENC2_sb_JetPt_ch_combined_R" + jetR + "_trk10";
+        const std::string h4_name = "h_" + hist_names[iobs + 2] + "ENC2_ss_JetPt_ch_combined_R" + jetR + "_trk10";
+        const std::string h5_name = "h_" + hist_names[iobs + 2] + "ENC2_sb_JetPt_ch_combined_R" + jetR + "_trk10";
+        const std::string h6_name = "h_" + hist_names[iobs + 2] + "ENC2_bb_JetPt_ch_combined_R" + jetR + "_trk10";
+        const std::string h7_name = "h_" + hist_names[iobs + 4] + "ENC2_sb_JetPt_ch_combined_R" + jetR + "_trk10";
 
         h1_names.push_back(h1_name);
         h2_names.push_back(h2_name);
@@ -204,7 +201,7 @@ void plot_eec_mbcone(string pt_min, string pt_max)
     std::cout << "checkpoint2" << endl;
 
     // define pt related variables
-    TString ptbin = pt_min + " < #it{p}_{T}^{ch. jet} < " + pt_max + " GeV/#it{c}, #it{A}_{jet} > 0.6#it{#piR}^{2}"; //;TString::Format("%s < #it{p}_{T}^{ch. jet} < %s GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
+    TString ptbin = pt_min + " < #it{p}_{T}^{combined jet, sub.} < " + pt_max + " GeV/#it{c}, #it{A}_{jet} > 0.6#it{#piR}^{2}"; //;TString::Format("%s < #it{p}_{T}^{ch. jet} < %s GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
     std::string pdf_outdir = "";
 
     //-------------------------------------------------//
