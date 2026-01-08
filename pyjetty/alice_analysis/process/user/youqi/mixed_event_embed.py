@@ -376,8 +376,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 bkg_counter -= 1
                 self.fj_particles_combined_beforeCS.push_back(p)
             # read in a ME
-            self.fj_particles_combined_beforeCS_mb1_temp = self.io.load_track_tree_for_event(me_iev, offset_indices=True, min_pt=0.15)
-            # fj.vectorPJ(self.df_fjparticles.iloc[me_iev])
+            self.fj_particles_combined_beforeCS_mb1_temp = fj.vectorPJ(self.df_fjparticles.iloc[me_iev])
             bkg_counter = -1
             self.fj_particles_combined_beforeCS_mb1 = fj.vectorPJ()
             for p in self.fj_particles_combined_beforeCS_mb1_temp:
@@ -386,7 +385,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 self.fj_particles_combined_beforeCS_mb1.push_back(p)            
             self.used_ev_mask[me_iev] = True
             # read in another ME
-            self.fj_particles_combined_beforeCS_mb2_temp = self.io.load_track_tree_for_event(me2_iev, offset_indices=True, min_pt=0.15)
+            self.fj_particles_combined_beforeCS_mb2_temp = fj.vectorPJ(self.df_fjparticles.iloc[me2_iev])
             bkg_counter = -1
             self.fj_particles_combined_beforeCS_mb2 = fj.vectorPJ()
             for p in self.fj_particles_combined_beforeCS_mb2_temp:
@@ -939,11 +938,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 event_candidate_iev = event_candidate_iev + 1
                 continue
             
-            # Load tracks for this event on-demand
-            event_select_particles = self.io.load_track_tree_for_event(event_candidate_iev, offset_indices=True, min_pt=0.15)           
-            if len(event_select_particles) == 0:
-                continue
-            event_select_ntrks = len(event_select_particles)
+            event_select_particles = self.df_fjparticles.iloc[event_candidate_iev]
+            event_select_ntrks = len(event_select_particles) # total number of tracks in the selected event
             event_select_itrk = random.randint(0, event_select_ntrks - 1)
             # print("event_select_itrk (out of event_select_ntrks):", event_select_ntrks, event_select_itrk)
 
@@ -958,7 +954,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         #     print("ntrks, nevts_unique:", ntrks_target, len(iev_unique))
 
         return mixed_event
-    
+
     #---------------------------------------------------------------
     # Get a triplet of event numbers with appropriate event topologies, one for SE and two for MEs
     #---------------------------------------------------------------
@@ -982,9 +978,13 @@ class ProcessEmbedENC(process_base.ProcessBase):
     
     def process_data(self):
         
-        self.io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle', is_pp=False)
-        self.df_evts = (self.io.load_event_tree())[['iev','centrality','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
-        self.nEvents = (self.df_evts).shape[0]
+        # Use IO helper class to convert detector-level ROOT TTree into
+        # a SeriesGroupBy object of fastjet particles per event
+        io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle', is_pp=False)
+        self.df_fjparticles = io.load_data(m=self.m, offset_indices=True)
+        self.df_evts = io.track_df[['iev','centrality','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
+        self.nEvents = len(self.df_fjparticles.index)
+        self.nTracks = len(io.track_df.index)
         # Pre-extract arrays for vectorized operations
         self.iev_array = self.df_evts['iev'].values
         self.vz_array = self.df_evts['z_vtx_reco'].values
@@ -999,7 +999,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         # a SeriesGroupBy object of fastjet particles per event
         io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle', use_ev_id_ext=False, is_det_level=True)
         # io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle_gen', use_ev_id_ext=False)
-        self.df_fjparticles_mc = io.load_data(min_pt=0.15)
+        self.df_fjparticles_mc = io.load_data(m=self.m)
         self.df_evts_mc = io.track_df[['iev','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
         # self.df_evts_mc = io.track_df[['iev','z_vtx_gen']].drop_duplicates().set_index('iev', drop=False)
         self.nEvents_mc = len(self.df_fjparticles_mc.index)
