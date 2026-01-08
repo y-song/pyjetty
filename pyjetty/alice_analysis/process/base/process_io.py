@@ -256,7 +256,61 @@ class ProcessIO(common_base.CommonBase):
       sys.exit('ERROR: There appear to be {} duplicate particles in the merged dataframe'.format(n_duplicates))
       
     return self.track_df
+  
+  #---------------------------------------------------------------
+  # Similar to load_dataframe(), but don't load tracks
+  #---------------------------------------------------------------  
+  def load_event_tree(self):
 
+    event_tree_name = self.tree_dir + self.event_tree_name
+    with uproot.open(self.input_file)[event_tree_name] as event_tree:
+      if not event_tree:
+        raise ValueError("Tree %s not found in file %s" % (event_tree_name, self.input_file))
+      self.event_df_orig = uproot.concatenate(event_tree, self.event_columns, library="pd")
+    
+    n_duplicates = sum(self.event_df_orig.duplicated(self.unique_identifier))
+    if n_duplicates > 0:
+      raise ValueError(
+        "There appear to be %i duplicate events in the event dataframe" % n_duplicates)
+    
+    # Apply event selection
+    self.event_df_orig.reset_index(drop=True)
+    if self.is_pp:
+      event_criteria = 'is_ev_rej == 0'
+    else:
+      event_criteria = 'is_ev_rej == 0 and centrality > @self.min_centrality and centrality < @self.max_centrality'
+    if self.event_plane_range:
+      event_criteria += ' and event_plane_angle > @self.event_plane_range[0] and event_plane_angle < @self.event_plane_range[1]'
+    event_df = self.event_df_orig.query(event_criteria).copy()
+    event_df.reset_index(drop=True)
+    event_df['iev'] = np.arange(0, event_df.shape[0])
+    self.event_df = event_df
+
+    return self.event_df
+  
+  def load_track_tree_for_event(self, iev, m=0.1396, offset_indices=False, min_pt=0.):
+    
+    # Get event identifiers
+    iev_df = self.event_df.iloc[iev]
+    run_number = iev_df['run_number']
+    ev_id = iev_df['ev_id']
+  
+    track_criteria = f"(run_number == {run_number}) & (ev_id == {ev_id})"
+  
+    track_tree_name = self.tree_dir + self.track_tree_name
+    with uproot.open(self.input_file)[track_tree_name] as track_tree:
+      if not track_tree:
+        raise ValueError("Tree %s not found in file %s" % (track_tree_name, self.input_file))
+      track_df_orig = uproot.concatenate(track_tree, self.track_columns, cut=track_criteria, library="pd")
+    
+    n_duplicates = sum(track_df_orig.duplicated(self.track_columns))
+    if n_duplicates > 0:
+      raise ValueError("There appear to be %i duplicate particles in the track dataframe" % n_duplicates)
+   
+    fj_particles = self.get_fjparticles(track_df_orig, m, offset_indices=offset_indices, random_mass=False, min_pt=min_pt)
+
+    return fj_particles 
+  
   #---------------------------------------------------------------
   # Opposite operation as load_dataframe above. Takes a dataframe
   # with the same formatting and saves to class's output_file.
@@ -449,24 +503,7 @@ class ProcessIO(common_base.CommonBase):
     # Apply a pt cut
     df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
 
-    # print('debug2',df_tracks_accepted)
-
     m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
-
-    # Randomly assign K and p mass for systematic check
-    if random_mass:
-      rand_val = np.random.random((len(m_array)))
-      K_mass = 0.4937     # GeV/c^2
-      p_mass = 0.938272   # GeV/c^2
-      # (p + pbar) / (pi+ + pi-) ~ 5.5%
-      # (K+ + K-) / (pi+ + pi-) ~ 13%
-      # But these are numbers with respect to the final _unreplaced_ pions, so there is
-      # an additional factor of 1/(1 + 5.5% + 13%) to get things right
-      K_factor = 0.13; p_factor = 0.055
-      K_prob = K_factor / (1 + K_factor + p_factor)
-      p_prob = 1 - p_factor / (1 + K_factor + p_factor)   # 1- just to look at diff random vals
-      m_array = np.where(rand_val < K_prob, K_mass, m_array)
-      m_array = np.where(rand_val > p_prob, p_mass, m_array)
 
     # Use swig'd function to create a vector of fastjet::PseudoJets from numpy arrays of pt,eta,phi
     fj_particles = fjext.vectorize_pt_eta_phi_m(
@@ -474,13 +511,6 @@ class ProcessIO(common_base.CommonBase):
       df_tracks_accepted['ParticlePhi'].values, m_array, user_index_offset)
 
     return fj_particles
-    # if self.is_ENC:
-    #   if self.is_det_level:
-    #     return fj_particles, df_tracks_accepted['ParticleMCIndex'].values
-    #   else:
-    #     return fj_particles, df_tracks_accepted['ParticlePID'].values
-    # else:
-    #   return fj_particles
 
   #---------------------------------------------------------------
   # Return associated mc indices from a given track dataframe

@@ -225,15 +225,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
                         h.GetYaxis().SetTitle(observable)
                         setattr(self, name, h)
                         getattr(self, hist_list_name).append(h)
-                        
-                        # perpcone combined
-                        name = 'h_perpcone{}_{}_JetPt_ch_combined_R{}_{}'.format(coneR, observable, R_label, thrd_label)
-                        print('Initialize histogram',name)
-                        h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
-                        h.GetXaxis().SetTitle('p_{T, comb jet}')
-                        h.GetYaxis().SetTitle(observable)
-                        setattr(self, name, h)
-                        getattr(self, hist_list_name).append(h)
 
             # ENC histograms
             ipoint = 2
@@ -292,33 +283,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                         setattr(self, name, h)
                         getattr(self, hist_list_name).append(h)
 
-                        # jet perpcone combined
-                        name = 'h_jet_perpcone{}_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
-                        print('Initialize histogram',name)
-                        h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                        h.GetXaxis().SetTitle('p_{T, comb jet}')
-                        h.GetYaxis().SetTitle('R_{L}')
-                        setattr(self, name, h)
-                        getattr(self, hist_list_name).append(h)
-
-                        # jetcone perpcone combined
-                        name = 'h_jetcone_perpcone{}_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
-                        print('Initialize histogram',name)
-                        h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                        h.GetXaxis().SetTitle('p_{T, comb jet}')
-                        h.GetYaxis().SetTitle('R_{L}')
-                        setattr(self, name, h)
-                        getattr(self, hist_list_name).append(h)
-
                         if (pair_type_label == '_sb'):
-
-                            name = 'h_2perpcone{}_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
-                            print('Initialize histogram',name)
-                            h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
-                            h.GetXaxis().SetTitle('p_{T, pp jet}')
-                            h.GetYaxis().SetTitle('R_{L}')
-                            setattr(self, name, h)
-                            getattr(self, hist_list_name).append(h)
 
                             name = 'h_2mbcone{}_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
                             print('Initialize histogram',name)
@@ -394,30 +359,13 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 iev_mc += 1
                 continue
 
-            # check MC event info
+            # check MC event info and get iev for SE and ME candidates
             mc_vtx = self.df_evts_mc.iloc[iev_mc]["z_vtx_reco"]
-            # print("MC ievt:", iev_mc, ", vtx =", mc_vtx)
-
             se_iev, me_iev, me2_iev = self.get_se_and_me(mc_vtx)
 
             if (se_iev == None):
                 iev_mc += 1
                 continue
-
-            # check PbPb SE info
-            # se_centrality = self.centrality_array[se_iev]
-            # se_vtx = self.vz_array[se_iev]
-            # print("SE ievt:", se_iev, ", vtx =", se_vtx, ", centrality =", se_centrality)
-
-            # check PbPb ME info
-            # me_centrality = self.centrality_array[me_iev]
-            # me_vtx = self.vz_array[me_iev]
-            # print("ME ievt:", me_iev, ", vtx =", me_vtx, ", centrality =", me_centrality)
-
-            # check PbPb ME2 info
-            # me_centrality = self.centrality_array[me2_iev]
-            # me_vtx = self.vz_array[me2_iev]
-            # print("ME ievt:", me2_iev, ", vtx =", me_vtx, ", centrality =", me_centrality)
             
             # read in a SE
             self.fj_particles_combined_beforeCS_temp = self.get_mixed_event(se_iev)
@@ -428,10 +376,23 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 bkg_counter -= 1
                 self.fj_particles_combined_beforeCS.push_back(p)
             # read in a ME
-            self.fj_particles_combined_beforeCS_mb1 = fj.vectorPJ(self.df_fjparticles.iloc[me_iev])
+            self.fj_particles_combined_beforeCS_mb1_temp = self.io.load_track_tree_for_event(me_iev, offset_indices=True, min_pt=0.15)
+            # fj.vectorPJ(self.df_fjparticles.iloc[me_iev])
+            bkg_counter = -1
+            self.fj_particles_combined_beforeCS_mb1 = fj.vectorPJ()
+            for p in self.fj_particles_combined_beforeCS_mb1_temp:
+                p.set_user_index(bkg_counter)
+                bkg_counter -= 1
+                self.fj_particles_combined_beforeCS_mb1.push_back(p)            
             self.used_ev_mask[me_iev] = True
             # read in another ME
-            self.fj_particles_combined_beforeCS_mb2 = fj.vectorPJ(self.df_fjparticles.iloc[me2_iev])
+            self.fj_particles_combined_beforeCS_mb2_temp = self.io.load_track_tree_for_event(me2_iev, offset_indices=True, min_pt=0.15)
+            bkg_counter = -1
+            self.fj_particles_combined_beforeCS_mb2 = fj.vectorPJ()
+            for p in self.fj_particles_combined_beforeCS_mb2_temp:
+                p.set_user_index(bkg_counter)
+                bkg_counter -= 1
+                self.fj_particles_combined_beforeCS_mb2.push_back(p)
             self.used_ev_mask[me2_iev] = True
 
             # Add particles from all pythia jets to the list
@@ -451,9 +412,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
             self.constituent_subtractor = CEventSubtractor(max_distance=self.max_distance, alpha=self.alpha, max_eta=self.max_eta, bge_rho_grid_size=self.bge_rho_grid_size, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area, distance_type=fjcontrib.ConstituentSubtractor.deltaR)
             self.fj_particles_combined_afterCS = self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS)
             self.rho = self.constituent_subtractor.bge_rho.rho()
-            # print("len(fj_particles_combined_beforeCS), len(fj_particles_combined_afterCS):", len(self.fj_particles_combined_beforeCS), ",", len(self.fj_particles_combined_afterCS))
-            # print([p.user_index() for p in self.fj_particles_combined_beforeCS])
-            # print([p.user_index() for p in self.fj_particles_combined_afterCS])
+            self.fj_particles_combined_afterCS_mb1 = self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS_mb1)
+            self.fj_particles_combined_afterCS_mb2 = self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS_mb2)
 
             self.hNevents.Fill(0)
             self.analyze_jets()
@@ -517,20 +477,18 @@ class ProcessEmbedENC(process_base.ProcessBase):
         #-------------------------------------------------------------
         # loop over all selected combined jets
         #-------------------------------------------------------------
-        for jet_combined in jets_combined_unsub:
+        for jet_combined_unsub in jets_combined_unsub:
         
             hname = 'h_JetPt_ch_combined_R{}'.format(R_label)
-            getattr(self, hname).Fill(jet_combined.python_info().sub_jet_pt)
+            getattr(self, hname).Fill(jet_combined_unsub.python_info().sub_jet_pt)
             
-            self.fill_jets(jet_combined, self.jetR_list[0])
-            self.fill_jetcone(jet_combined, None, self.jetR_list[0])
-            self.fill_perpcone(jet_combined, None, self.jetR_list[0], self.coneR_list[0])
-            self.fill_2perpcone(jet_combined, None, self.jetR_list[0], self.coneR_list[0])
-            self.fill_mbcone(jet_combined, None, self.jetR_list[0], self.coneR_list[0])
-            self.fill_2mbcone(jet_combined, None, self.jetR_list[0], self.coneR_list[0])
+            self.fill_jets(jet_combined_unsub, self.jetR_list[0])
+            self.fill_jetcone(jet_combined_unsub, None, self.jetR_list[0])
+            self.fill_mbcone(jet_combined_unsub, None, self.jetR_list[0], self.coneR_list[0])
+            self.fill_2mbcone(jet_combined_unsub, None, self.jetR_list[0], self.coneR_list[0])
 
-            self.cs_combined_unsub_list.clear()
-            del self.cs_combined_unsub_list
+        self.cs_combined_unsub_list.clear()
+        del self.cs_combined_unsub_list
 
     #---------------------------------------------------------------
     # Fill perp cone for matched combined jets
@@ -551,132 +509,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
         # fill EEC for matched comb jet using comb jet (after rho subtraction) for jet pT
         hname = 'h_{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
         self.fill_rho_local_histograms(hname, jet_combined, jetR, None)
-            
-    #---------------------------------------------------------------
-    # Fill perp cone for matched combined jets
-    #---------------------------------------------------------------
-    def fill_perpcone(self, jet_combined, jet_combined_wta, jetR, coneR):
-
-        R_label = str(jetR).replace('.', '') #+ 'Scaled'
-        perpcone_R = coneR
-        
-        # Do perp cone for the E-scheme jet and E-scheme jet cone
-        perp_jet1 = fj.PseudoJet()
-        perp_jet1.reset_PtYPhiM(jet_combined.pt(), jet_combined.rapidity(), jet_combined.phi() + np.pi/2, jet_combined.m())
-        parts_in_perpcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet1, perpcone_R)
-        parts_in_perpcone1 = self.rotate_parts(parts_in_perpcone1, -np.pi/2)
-        
-        for mode in ['jet','jetcone']:
-            # 1. E-scheme jet
-            if (mode == 'jet'):
-                constituents = jet_combined.constituents()
-                parts_in_jet = self.copy_parts(constituents) # NB: make a copy so that the original jet constituents will not be modifed
-            # 2. E-scheme jet cone
-            elif (mode == 'jetcone'):
-                parts_in_jet = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, jet_combined, perpcone_R)
-
-            # use 999 and -999 to distinguish from previous used labeling numbers
-            parts_in_cone1 = fj.vectorPJ()
-            # fill parts from jet
-            for part in parts_in_jet: # everything in the jet cone is "signal"
-                part.set_user_index(999)
-                parts_in_cone1.append(part)
-            # fill parts from perp cone 1
-            for part in parts_in_perpcone1:
-                part.set_user_index(-999)
-                parts_in_cone1.append(part)
-
-            # fill EEC for matched comb jet using comb jet (rho subtracted) for jet pT
-            hname = 'h_{}_perpcone{}_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(mode, coneR, R_label)
-            self.fill_ENC_histograms(hname, jet_combined, parts_in_cone1)
-            
-            if (mode == 'jetcone'):
-
-                hname = 'h_perpcone{}_{{}}_JetPt_ch_combined_R{}_{{}}'.format(coneR, R_label)
-                self.fill_rho_local_histograms(hname, jet_combined, coneR, parts_in_cone1)
-        
-        # Do perp cone for the WTA jet cone
-        if jet_combined_wta == None:
-            return
-        
-        perp_jet3 = fj.PseudoJet()
-        perp_jet3.reset_PtYPhiM(jet_combined_wta.pt(), jet_combined_wta.rapidity(), jet_combined_wta.phi() + np.pi/2, jet_combined_wta.m())
-        parts_in_perpcone3 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet3, perpcone_R)
-        parts_in_perpcone3 = self.rotate_parts(parts_in_perpcone3, -np.pi/2)
-        
-        for mode in ['jetcone']:
-            # 3. WTA jet cone
-            if (mode == 'jetcone'):
-                parts_in_jet = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, jet_combined_wta, perpcone_R)
-
-            # use 999 and -999 to distinguish from previous used labeling numbers
-            parts_in_cone3 = fj.vectorPJ()
-            # fill parts from jet
-            for part in parts_in_jet: # everything in the jet cone is "signal"
-                part.set_user_index(999)
-                parts_in_cone3.append(part)
-            # fill parts from perp cone 3
-            for part in parts_in_perpcone3:
-                part.set_user_index(-999)
-                parts_in_cone3.append(part)
-            
-            # fill EEC for matched comb jet using comb jet (rho subtracted) for jet pT
-            hname = 'h_wta_{}_perpcone{}_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(mode, coneR, R_label)
-            self.fill_ENC_histograms(hname, jet_combined, parts_in_cone3)
-
-            hname = 'h_wta_perpcone{}_{{}}_JetPt_ch_combined_R{}_{{}}'.format(coneR, R_label)
-            self.fill_rho_local_histograms(hname, jet_combined, coneR, parts_in_cone3)
-            
-    def fill_2perpcone(self, jet_combined, jet_combined_wta, jetR, coneR):
-
-        R_label = str(jetR).replace('.', '') #+ 'Scaled'
-        perpcone_R = coneR
-        
-        # Do perp cone for the E-scheme jet and E-scheme jet cone
-        perp_jet1 = fj.PseudoJet()
-        perp_jet1.reset_PtYPhiM(jet_combined.pt(), jet_combined.rapidity(), jet_combined.phi() + np.pi/2, jet_combined.m())
-        perp_jet2 = fj.PseudoJet()
-        perp_jet2.reset_PtYPhiM(jet_combined.pt(), jet_combined.rapidity(), jet_combined.phi() - np.pi/2, jet_combined.m())
-        parts_in_perpcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet1, perpcone_R)
-        parts_in_perpcone1 = self.rotate_parts(parts_in_perpcone1, -np.pi/2)
-        parts_in_perpcone2 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet2, perpcone_R)        
-        parts_in_perpcone2 = self.rotate_parts(parts_in_perpcone2, +np.pi/2)
-        
-        # label one perpcone as "sig" and the other as "bkg" so the perp1-perp2 and perp1(2)-perp1(2) correlations can be saved separately
-        parts_in_cone = fj.vectorPJ()
-        for part in parts_in_perpcone1:
-            part.set_user_index(999)
-            parts_in_cone.append(part)
-        for part in parts_in_perpcone2:
-            part.set_user_index(-999)
-            parts_in_cone.append(part)
-
-        hname = 'h_2perpcone{}_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(coneR, R_label)
-        self.fill_ENC_histograms(hname, jet_combined, parts_in_cone)
-        
-        if (jet_combined_wta == None):
-            return
-        
-        # Do perp cone for the WTA jet cone
-        perp_jet3 = fj.PseudoJet()
-        perp_jet3.reset_PtYPhiM(jet_combined_wta.pt(), jet_combined_wta.rapidity(), jet_combined_wta.phi() + np.pi/2, jet_combined_wta.m())
-        perp_jet4 = fj.PseudoJet()
-        perp_jet4.reset_PtYPhiM(jet_combined_wta.pt(), jet_combined_wta.rapidity(), jet_combined_wta.phi() - np.pi/2, jet_combined_wta.m())
-        parts_in_perpcone3 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet3, perpcone_R)
-        parts_in_perpcone3 = self.rotate_parts(parts_in_perpcone3, -np.pi/2)
-        parts_in_perpcone4 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, perp_jet4, perpcone_R)        
-        parts_in_perpcone4 = self.rotate_parts(parts_in_perpcone4, +np.pi/2)
-        
-        parts_in_cone = fj.vectorPJ()
-        for part in parts_in_perpcone3:
-            part.set_user_index(999)
-            parts_in_cone.append(part)
-        for part in parts_in_perpcone4:
-            part.set_user_index(-999)
-            parts_in_cone.append(part)
-            
-        hname = 'h_wta_2perpcone{}_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(coneR, R_label)
-        self.fill_ENC_histograms(hname, jet_combined, parts_in_cone) # Use the original E-scheme jet pT
 
     #---------------------------------------------------------------
     # Fill mb cone for matched combined jets
@@ -689,7 +521,15 @@ class ProcessEmbedENC(process_base.ProcessBase):
         # Do mb cones for the E-scheme jet and E-scheme jet cone
         mb_jet1 = fj.PseudoJet()
         mb_jet1.reset_PtYPhiM(jet_combined.pt(), jet_combined.rapidity(), jet_combined.phi(), jet_combined.m())
-        parts_in_mbcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb1, mb_jet1, mbcone_R)
+        parts_in_mbcone1 = fj.vectorPJ()
+        # Step 1: Find particles around jet in AFTER CS particles (geometric selection)
+        parts_in_mbcone1_afterCS = self.find_parts_around_jet(self.fj_particles_combined_afterCS_mb1, mb_jet1, mbcone_R)
+        # Step 2: Create lookup dictionary for BEFORE CS particles
+        parts_in_mbcone1_beforeCS_dict = {p.user_index(): p for p in self.fj_particles_combined_beforeCS_mb1}
+        # Step 3: Match each afterCS particle back to its beforeCS version
+        for part_in_mbcone1_afterCS in parts_in_mbcone1_afterCS:
+            part_in_mbcone1_beforeCS = parts_in_mbcone1_beforeCS_dict.get(part_in_mbcone1_afterCS.user_index())
+            parts_in_mbcone1.push_back(part_in_mbcone1_beforeCS)
         
         for mode in ['jet','jetcone']:
             # 1. E-scheme jet
@@ -726,10 +566,15 @@ class ProcessEmbedENC(process_base.ProcessBase):
         # Do mb cone for the WTA jet cone
         mb_jet3 = fj.PseudoJet()
         mb_jet3.reset_PtYPhiM(jet_combined_wta.pt(), jet_combined_wta.rapidity(), jet_combined_wta.phi(), jet_combined_wta.m())
-        # mb_jet4 = fj.PseudoJet()
-        # mb_jet4.reset_PtYPhiM(jet_combined_wta.pt(), jet_combined_wta.rapidity(), jet_combined_wta.phi(), jet_combined_wta.m())
-        parts_in_mbcone3 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb1, mb_jet3, mbcone_R)
-        # parts_in_mbcone4 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb2, mb_jet4, mbcone_R)        
+        parts_in_mbcone3 = fj.vectorPJ()
+        # Step 1: Find particles around jet in AFTER CS particles (geometric selection)
+        parts_in_mbcone3_afterCS = self.find_parts_around_jet(self.fj_particles_combined_afterCS_mb1, mb_jet3, mbcone_R)
+        # Step 2: Create lookup dictionary for BEFORE CS particles
+        parts_in_mbcone3_beforeCS_dict = {p.user_index(): p for p in self.fj_particles_combined_beforeCS_mb1}
+        # Step 3: Match each afterCS particle back to its beforeCS version
+        for part_in_mbcone3_afterCS in parts_in_mbcone3_afterCS:
+            part_in_mbcone3_beforeCS = parts_in_mbcone3_beforeCS_dict.get(part_in_mbcone3_afterCS.user_index())
+            parts_in_mbcone3.push_back(part_in_mbcone3_beforeCS)
         
         for mode in ['jetcone']:
             # 3. WTA jet cone
@@ -759,14 +604,32 @@ class ProcessEmbedENC(process_base.ProcessBase):
         R_label = str(jetR).replace('.', '') #+ 'Scaled'
         mbcone_R = coneR
         
-        # Do perp cone for the E-scheme jet and E-scheme jet cone
+        # Do MB cone for the E-scheme jet and E-scheme jet cone
         mb_jet1 = fj.PseudoJet()
         mb_jet1.reset_PtYPhiM(jet_combined.pt(), jet_combined.rapidity(), jet_combined.phi(), jet_combined.m())
         mb_jet2 = fj.PseudoJet()
         mb_jet2.reset_PtYPhiM(jet_combined.pt(), jet_combined.rapidity(), jet_combined.phi(), jet_combined.m())
-        parts_in_mbcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb1, mb_jet1, mbcone_R)
-        parts_in_mbcone2 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb2, mb_jet2, mbcone_R)        
         
+        parts_in_mbcone1 = fj.vectorPJ()
+        # Step 1: Find particles around jet in AFTER CS particles (geometric selection)
+        parts_in_mbcone1_afterCS = self.find_parts_around_jet(self.fj_particles_combined_afterCS_mb1, mb_jet1, mbcone_R)
+        # Step 2: Create lookup dictionary for BEFORE CS particles
+        parts_in_mbcone1_beforeCS_dict = {p.user_index(): p for p in self.fj_particles_combined_beforeCS_mb1}
+        # Step 3: Match each afterCS particle back to its beforeCS version
+        for part_in_mbcone1_afterCS in parts_in_mbcone1_afterCS:
+            part_in_mbcone1_beforeCS = parts_in_mbcone1_beforeCS_dict.get(part_in_mbcone1_afterCS.user_index())
+            parts_in_mbcone1.push_back(part_in_mbcone1_beforeCS)
+            
+        parts_in_mbcone2 = fj.vectorPJ()
+        # Step 1: Find particles around jet in AFTER CS particles (geometric selection)
+        parts_in_mbcone2_afterCS = self.find_parts_around_jet(self.fj_particles_combined_afterCS_mb2, mb_jet2, mbcone_R)
+        # Step 2: Create lookup dictionary for BEFORE CS particles
+        parts_in_mbcone2_beforeCS_dict = {p.user_index(): p for p in self.fj_particles_combined_beforeCS_mb2}
+        # Step 3: Match each afterCS particle back to its beforeCS version
+        for part_in_mbcone2_afterCS in parts_in_mbcone2_afterCS:
+            part_in_mbcone2_beforeCS = parts_in_mbcone2_beforeCS_dict.get(part_in_mbcone2_afterCS.user_index())
+            parts_in_mbcone2.push_back(part_in_mbcone2_beforeCS)
+
         # label one perpcone as "sig" and the other as "bkg" so the perp1-perp2 and perp1(2)-perp1(2) correlations can be saved separately
         parts_in_cone = fj.vectorPJ()
         for part in parts_in_mbcone1:
@@ -787,9 +650,27 @@ class ProcessEmbedENC(process_base.ProcessBase):
         mb_jet3.reset_PtYPhiM(jet_combined_wta.pt(), jet_combined_wta.rapidity(), jet_combined_wta.phi(), jet_combined_wta.m())
         mb_jet4 = fj.PseudoJet()
         mb_jet4.reset_PtYPhiM(jet_combined_wta.pt(), jet_combined_wta.rapidity(), jet_combined_wta.phi(), jet_combined_wta.m())
-        parts_in_mbcone3 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb1, mb_jet3, mbcone_R)
-        parts_in_mbcone4 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb2, mb_jet4, mbcone_R) 
-        
+       
+        parts_in_mbcone3 = fj.vectorPJ()
+        # Step 1: Find particles around jet in AFTER CS particles (geometric selection)
+        parts_in_mbcone3_afterCS = self.find_parts_around_jet(self.fj_particles_combined_afterCS_mb1, mb_jet3, mbcone_R)
+        # Step 2: Create lookup dictionary for BEFORE CS particles
+        parts_in_mbcone3_beforeCS_dict = {p.user_index(): p for p in self.fj_particles_combined_beforeCS_mb1}
+        # Step 3: Match each afterCS particle back to its beforeCS version
+        for part_in_mbcone3_afterCS in parts_in_mbcone3_afterCS:
+            part_in_mbcone3_beforeCS = parts_in_mbcone3_beforeCS_dict.get(part_in_mbcone3_afterCS.user_index())
+            parts_in_mbcone3.push_back(part_in_mbcone3_beforeCS)
+            
+        parts_in_mbcone4 = fj.vectorPJ()
+        # Step 1: Find particles around jet in AFTER CS particles (geometric selection)
+        parts_in_mbcone4_afterCS = self.find_parts_around_jet(self.fj_particles_combined_afterCS_mb2, mb_jet4, mbcone_R)
+        # Step 2: Create lookup dictionary for BEFORE CS particles
+        parts_in_mbcone4_beforeCS_dict = {p.user_index(): p for p in self.fj_particles_combined_beforeCS_mb2}
+        # Step 3: Match each afterCS particle back to its beforeCS version
+        for part_in_mbcone4_afterCS in parts_in_mbcone4_afterCS:
+            part_in_mbcone4_beforeCS = parts_in_mbcone4_beforeCS_dict.get(part_in_mbcone4_afterCS.user_index())
+            parts_in_mbcone4.push_back(part_in_mbcone4_beforeCS)
+            
         parts_in_cone = fj.vectorPJ()
         for part in parts_in_mbcone3:
             part.set_user_index(999)
@@ -1058,8 +939,11 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 event_candidate_iev = event_candidate_iev + 1
                 continue
             
-            event_select_particles = self.df_fjparticles.iloc[event_candidate_iev]
-            event_select_ntrks = len(event_select_particles) # total number of tracks in the selected event
+            # Load tracks for this event on-demand
+            event_select_particles = self.io.load_track_tree_for_event(event_candidate_iev, offset_indices=True, min_pt=0.15)           
+            if len(event_select_particles) == 0:
+                continue
+            event_select_ntrks = len(event_select_particles)
             event_select_itrk = random.randint(0, event_select_ntrks - 1)
             # print("event_select_itrk (out of event_select_ntrks):", event_select_ntrks, event_select_itrk)
 
@@ -1074,7 +958,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         #     print("ntrks, nevts_unique:", ntrks_target, len(iev_unique))
 
         return mixed_event
-
+    
     #---------------------------------------------------------------
     # Get a triplet of event numbers with appropriate event topologies, one for SE and two for MEs
     #---------------------------------------------------------------
@@ -1098,13 +982,9 @@ class ProcessEmbedENC(process_base.ProcessBase):
     
     def process_data(self):
         
-        # Use IO helper class to convert detector-level ROOT TTree into
-        # a SeriesGroupBy object of fastjet particles per event
-        io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle', is_pp=False)
-        self.df_fjparticles = io.load_data(m=self.m, offset_indices=True)
-        self.df_evts = io.track_df[['iev','centrality','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
-        self.nEvents = len(self.df_fjparticles.index)
-        self.nTracks = len(io.track_df.index)
+        self.io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle', is_pp=False)
+        self.df_evts = (self.io.load_event_tree())[['iev','centrality','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
+        self.nEvents = (self.df_evts).shape[0]
         # Pre-extract arrays for vectorized operations
         self.iev_array = self.df_evts['iev'].values
         self.vz_array = self.df_evts['z_vtx_reco'].values
@@ -1119,7 +999,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         # a SeriesGroupBy object of fastjet particles per event
         io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle', use_ev_id_ext=False, is_det_level=True)
         # io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle_gen', use_ev_id_ext=False)
-        self.df_fjparticles_mc = io.load_data(m=self.m)
+        self.df_fjparticles_mc = io.load_data(min_pt=0.15)
         self.df_evts_mc = io.track_df[['iev','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
         # self.df_evts_mc = io.track_df[['iev','z_vtx_gen']].drop_duplicates().set_index('iev', drop=False)
         self.nEvents_mc = len(self.df_fjparticles_mc.index)
