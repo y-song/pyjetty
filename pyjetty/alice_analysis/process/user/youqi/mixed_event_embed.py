@@ -347,6 +347,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
 
         while (iev_mc < self.nEvents_mc):
             
+            print(iev_mc)
+            
             # assuming they are charged final states...
             self.parts_pythia_ch = fj.vectorPJ(self.df_fjparticles_mc.iloc[iev_mc])
 
@@ -376,7 +378,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 bkg_counter -= 1
                 self.fj_particles_combined_beforeCS.push_back(p)
             # read in a ME
-            self.fj_particles_combined_beforeCS_mb1_temp = fj.vectorPJ(self.df_fjparticles.iloc[me_iev])
+            self.fj_particles_combined_beforeCS_mb1_temp = self.io.load_track_tree_for_events([me_iev], offset_indices=True, min_pt=0.15)[me_iev]
+            # print(type(self.fj_particles_combined_beforeCS_mb1_temp), "\n", self.fj_particles_combined_beforeCS_mb1_temp)
             bkg_counter = -1
             self.fj_particles_combined_beforeCS_mb1 = fj.vectorPJ()
             for p in self.fj_particles_combined_beforeCS_mb1_temp:
@@ -385,7 +388,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 self.fj_particles_combined_beforeCS_mb1.push_back(p)            
             self.used_ev_mask[me_iev] = True
             # read in another ME
-            self.fj_particles_combined_beforeCS_mb2_temp = fj.vectorPJ(self.df_fjparticles.iloc[me2_iev])
+            self.fj_particles_combined_beforeCS_mb2_temp = self.io.load_track_tree_for_events([me2_iev], offset_indices=True, min_pt=0.15)[me2_iev]
             bkg_counter = -1
             self.fj_particles_combined_beforeCS_mb2 = fj.vectorPJ()
             for p in self.fj_particles_combined_beforeCS_mb2_temp:
@@ -921,40 +924,47 @@ class ProcessEmbedENC(process_base.ProcessBase):
 
         ntrks_target = (int)(self.hmult.GetRandom())
         ntrks_added = 0
-        # iev_unique = []
-        event_candidate_iev = 0
+        iev_unique = []
         
         mixed_event = fj.vectorPJ()
         mixed_event_vz = self.vz_array[se_iev]
         mixed_event_centrality = self.centrality_array[se_iev]
 
+        # Get all matching event candidates upfront
+        matched_event_ievs = self.get_matched_event_iev(mixed_event_centrality, mixed_event_vz)
+        # matched_event_ievs = [1,2,3,4]
+        matched_event_counter = 0
+
+        if len(matched_event_ievs) == 0:
+            print("Warning: No matching events found!")
+            return fj.vectorPJ()
+    
+        # dict[iev] -> <fastjet.vectorPJ>
+        events_select_particles = self.io.load_track_tree_for_events(matched_event_ievs, offset_indices=True, min_pt=0.15)
+        
         while (ntrks_added < ntrks_target):
 
-            event_candidate_iev = event_candidate_iev % (self.nEvents)
-            event_candidate_vz = self.vz_array[event_candidate_iev]
-            event_candidate_centrality = self.centrality_array[event_candidate_iev]
-
-            if ( abs(event_candidate_vz - mixed_event_vz) > 1.0 or abs(event_candidate_centrality - mixed_event_centrality) > 2.0 ):
-                event_candidate_iev = event_candidate_iev + 1
+            # Load tracks for this event on-demand
+            event_select_iev = matched_event_ievs[matched_event_counter % len(matched_event_ievs)]
+            event_select_particles = events_select_particles[event_select_iev]         
+            if len(event_select_particles) == 0:
                 continue
-            
-            event_select_particles = self.df_fjparticles.iloc[event_candidate_iev]
-            event_select_ntrks = len(event_select_particles) # total number of tracks in the selected event
+            event_select_ntrks = len(event_select_particles)
             event_select_itrk = random.randint(0, event_select_ntrks - 1)
             # print("event_select_itrk (out of event_select_ntrks):", event_select_ntrks, event_select_itrk)
 
             mixed_event.push_back(event_select_particles[event_select_itrk])
             ntrks_added += 1
-            event_candidate_iev += 1
-            # if (event_candidate_iev not in iev_unique):
-            #     iev_unique.append(event_candidate_iev)
-            # print("itrk, event_candidate_iev:", ntrks_added, event_candidate_iev)
+            matched_event_counter += 1
+            if (matched_event_counter not in iev_unique):
+                iev_unique.append(matched_event_counter)
+            # print("itrk, matched_event_counter:", ntrks_added, matched_event_counter)
 
-        # if (ntrks_target % 100 == 0): # randomly check this
-        #     print("ntrks, nevts_unique:", ntrks_target, len(iev_unique))
+        if (ntrks_target % 100 == 0): # randomly check this
+            print("ntrks, nevts_unique:", ntrks_target, len(iev_unique))
 
         return mixed_event
-
+    
     #---------------------------------------------------------------
     # Get a triplet of event numbers with appropriate event topologies, one for SE and two for MEs
     #---------------------------------------------------------------
@@ -969,6 +979,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         se_vtx = self.vz_array[se_iev]
         se_cent = self.centrality_array[se_iev]
 
+        # Get all matching event candidates upfront
         me_mask = ( (np.abs(self.centrality_array - se_cent) < 2.0) & (np.abs(self.vz_array - se_vtx) < 1.0) & (~self.used_ev_mask) )
         me_candidates = np.where(me_mask)[0]
         if (len(me_candidates) < 2):
@@ -978,18 +989,15 @@ class ProcessEmbedENC(process_base.ProcessBase):
     
     def process_data(self):
         
-        # Use IO helper class to convert detector-level ROOT TTree into
-        # a SeriesGroupBy object of fastjet particles per event
-        io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle', is_pp=False)
-        self.df_fjparticles = io.load_data(m=self.m, offset_indices=True)
-        self.df_evts = io.track_df[['iev','centrality','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
-        self.nEvents = len(self.df_fjparticles.index)
-        self.nTracks = len(io.track_df.index)
+        self.io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle', is_pp=False)
+        self.df_evts = (self.io.load_event_tree())[['iev','centrality','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
+        self.nEvents = (self.df_evts).shape[0]
         # Pre-extract arrays for vectorized operations
         self.iev_array = self.df_evts['iev'].values
         self.vz_array = self.df_evts['z_vtx_reco'].values
         self.centrality_array = self.df_evts['centrality'].values
-
+        self.topology_bins = self.build_topology_bins()
+        
         print('Done with process_data()')
 
 
@@ -999,7 +1007,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         # a SeriesGroupBy object of fastjet particles per event
         io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle', use_ev_id_ext=False, is_det_level=True)
         # io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle_gen', use_ev_id_ext=False)
-        self.df_fjparticles_mc = io.load_data(m=self.m)
+        self.df_fjparticles_mc = io.load_data(min_pt=0.15)
         self.df_evts_mc = io.track_df[['iev','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
         # self.df_evts_mc = io.track_df[['iev','z_vtx_gen']].drop_duplicates().set_index('iev', drop=False)
         self.nEvents_mc = len(self.df_fjparticles_mc.index)
@@ -1008,6 +1016,65 @@ class ProcessEmbedENC(process_base.ProcessBase):
         # print(self.df_evts_mc)
 
         print('Done with process_mc()')
+
+    #---------------------------------------------------------------
+    # Group events by (centrality, vz) bins for fast lookup.
+    # Returns dict: (cent_bin, vz_bin) -> list of event indices
+    #---------------------------------------------------------------
+    def build_topology_bins(self):
+        
+        print("Pre-building event topology lookup...")
+        topology_bins = {}
+        
+        # Define bin sizes
+        cent_bin_size = 2.0  # centrality bins of width 2%
+        vz_bin_size = 1.0    # vz bins of width 1 cm
+        
+        for iev in range(self.nEvents):
+            cent = self.centrality_array[iev]
+            vz = self.vz_array[iev]
+            
+            # Compute bin indices
+            cent_bin = int(cent / cent_bin_size)
+            vz_bin = int(vz / vz_bin_size)
+            
+            key = (cent_bin, vz_bin)
+            if key not in topology_bins:
+                topology_bins[key] = []
+            topology_bins[key].append(iev)
+        
+        # Print statistics
+        # total_bins = len(topology_bins)
+        # avg_events_per_bin = sum(len(v) for v in topology_bins.values()) / total_bins
+        # print(f"Created {total_bins} topology bins, avg {avg_events_per_bin:.1f} events/bin")
+        print("First item of topology_bins:\n", list(topology_bins.items())[0])
+
+        return topology_bins
+    
+    #---------------------------------------------------------------
+    # Get all event indices matching target topology.
+    # Returns list of event indices.
+    #---------------------------------------------------------------
+    def get_matched_event_iev(self, target_cent, target_vz):
+    
+        cent_bin_size = 2.0
+        vz_bin_size = 1.0
+        
+        cent_bin = int(target_cent / cent_bin_size)
+        vz_bin = int(target_vz / vz_bin_size)
+        
+        # Get events from this bin (and possibly neighboring bins)
+        matched_event_iev = []
+        for dc in [-1, 0, 1]:  # Check neighboring cent bins
+            for dv in [-1, 0, 1]:  # Check neighboring vz bins
+                key = (cent_bin + dc, vz_bin + dv)
+                if key in self.topology_bins:
+                    for candidate_iev in self.topology_bins[key]:
+                        # Double-check exact cuts
+                        if (abs(self.vz_array[candidate_iev] - target_vz) < 1.0 and abs(self.centrality_array[candidate_iev] - target_cent) < 2.0 ):
+                            matched_event_iev.append(candidate_iev)
+    
+        return matched_event_iev
 
 ################################################################
 if __name__ == '__main__':

@@ -212,7 +212,7 @@ class ProcessIO(common_base.CommonBase):
         event_criteria += ' and event_plane_angle > @self.event_plane_range[0] and event_plane_angle < @self.event_plane_range[1]'
       event_df = self.event_df_orig.query(event_criteria).copy()
       event_df.reset_index(drop=True)
-      event_df['iev'] = np.arange(0, event_df.shape[0])
+      event_df['iev'] = np.arange(0, event_df.shape[0], dtype=int)
 
     # Load track tree into dataframe
     track_tree = None
@@ -283,33 +283,56 @@ class ProcessIO(common_base.CommonBase):
       event_criteria += ' and event_plane_angle > @self.event_plane_range[0] and event_plane_angle < @self.event_plane_range[1]'
     event_df = self.event_df_orig.query(event_criteria).copy()
     event_df.reset_index(drop=True)
-    event_df['iev'] = np.arange(0, event_df.shape[0])
+    event_df['iev'] = np.arange(0, event_df.shape[0], dtype=int)
     self.event_df = event_df
 
     return self.event_df
   
-  def load_track_tree_for_event(self, iev, m=0.1396, offset_indices=False, min_pt=0.):
+  def load_track_tree_for_events(self, iev_list, m=0.1396, offset_indices=False, min_pt=0.):
     
-    # Get event identifiers
-    iev_df = self.event_df.iloc[iev]
-    run_number = iev_df['run_number']
-    ev_id = iev_df['ev_id']
-  
-    track_criteria = f"(run_number == {run_number}) & (ev_id == {ev_id})"
-  
-    track_tree_name = self.tree_dir + self.track_tree_name
-    with uproot.open(self.input_file)[track_tree_name] as track_tree:
-      if not track_tree:
-        raise ValueError("Tree %s not found in file %s" % (track_tree_name, self.input_file))
-      track_df_orig = uproot.concatenate(track_tree, self.track_columns, cut=track_criteria, library="pd")
-    
-    n_duplicates = sum(track_df_orig.duplicated(self.track_columns))
-    if n_duplicates > 0:
-      raise ValueError("There appear to be %i duplicate particles in the track dataframe" % n_duplicates)
-   
-    fj_particles = self.get_fjparticles(track_df_orig, m, offset_indices=offset_indices, random_mass=False, min_pt=min_pt)
+    result = {}
+    chunk_size = 900
 
-    return fj_particles 
+    for i in range(0, len(iev_list), chunk_size):
+      chunk_iev_list = iev_list[i:i+chunk_size]
+      
+      # Get event identifiers
+      select_event_df = self.event_df.copy().iloc[chunk_iev_list]
+
+      conditions = []
+      for _, row in select_event_df.iterrows():
+        run_number = row['run_number']
+        ev_id = row['ev_id']
+        conditions.append(f"((run_number == {run_number}) & (ev_id == {ev_id}))")
+
+      track_criteria = " | ".join(conditions)
+    
+      track_tree_name = self.tree_dir + self.track_tree_name
+      with uproot.open(self.input_file)[track_tree_name] as track_tree:
+        if not track_tree:
+          raise ValueError("Tree %s not found in file %s" % (track_tree_name, self.input_file))
+        track_df_chunk = uproot.concatenate(track_tree, self.track_columns, cut=track_criteria, library="pd")
+
+      if (len(track_df_chunk)) == 0:
+        continue
+   
+      n_duplicates = sum(track_df_chunk.duplicated(self.track_columns))
+      if n_duplicates > 0:
+        raise ValueError("There appear to be %i duplicate particles in the track dataframe" % n_duplicates)
+   
+      # Group by event and convert to fastjet particles
+      track_df_grouped = track_df_chunk.groupby(['run_number', 'ev_id'])
+    
+      for (run_number, ev_id), group_df in track_df_grouped:
+          # Find which iev this corresponds to
+          row = (select_event_df['run_number'] == run_number) & (select_event_df['ev_id'] == ev_id)
+          iev = select_event_df[row].iloc[0]['iev']
+          
+          # Convert to fastjet particles
+          fj_particles = self.get_fjparticles(group_df, m, offset_indices=offset_indices, random_mass=False, min_pt=min_pt)
+          result[iev] = fj_particles
+
+    return result 
   
   #---------------------------------------------------------------
   # Opposite operation as load_dataframe above. Takes a dataframe
