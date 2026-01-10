@@ -71,7 +71,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
 
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
-
+        
         self.jetR_list = config["jetR"] 
 
         self.nev = args.nev
@@ -172,13 +172,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
             h = ROOT.TH2D(name, name, 200, pt_bins, 100, area_bins)
             h.GetXaxis().SetTitle('p_{T, comb jet}')
             h.GetYaxis().SetTitle('Area')
-            setattr(self, name, h)
-            getattr(self, hist_list_name).append(h)
-
-            name = 'h_JetPt_ch_PbPb_JetPt_ch_combined_R{}'.format(R_label)
-            h = ROOT.TH2D(name, name, 200, pt_bins, 200, pt_bins)
-            h.GetXaxis().SetTitle('p_{T, PbPb jet}')
-            h.GetYaxis().SetTitle('p_{T, comb jet}')
             setattr(self, name, h)
             getattr(self, hist_list_name).append(h)
             
@@ -429,7 +422,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         for jetR in self.jetR_list:
             jetR_str = str(jetR).replace('.', '')
             
-            jet_selector = fj.SelectorPtMin(10) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
+            jet_selector = fj.SelectorPtMin(5) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
             setattr(self, "jet_selector_R%s" % jetR_str, jet_selector)
 
     #---------------------------------------------------------------
@@ -447,98 +440,44 @@ class ProcessEmbedENC(process_base.ProcessBase):
         print("Nevt(MC): ", self.nEvents_mc)
         
         iev_mc = 0 # Event loop count
-        used_ev = []
+        self.used_ev_mask = np.zeros(self.nEvents, dtype=bool)
 
         while (iev_mc < self.nEvents_mc):
-
+            
             # assuming they are charged final states...
             self.parts_pythia_ch = fj.vectorPJ(self.df_fjparticles_mc.iloc[iev_mc])
 
-            cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
-            jets_pp = fj.sorted_by_pt( jet_selector(cs_pp.inclusive_jets()) )
+            self.cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
+            self.jets_pp = fj.sorted_by_pt( jet_selector(self.cs_pp.inclusive_jets()) )
             
             # if leading jet pT is over the thrd for the given pTHat bin, go to next MC
-            if (len(jets_pp) > 0 and jets_pp[0].perp() > jet_pt_thrd):
+            if (len(self.jets_pp) > 0 and self.jets_pp[0].perp() > jet_pt_thrd):
                 print("skip due to high weight")
                 iev_mc += 1
                 continue
 
-            # check MC event info
+            # check MC event info and get iev for SE and ME candidates
             mc_vtx = self.df_evts_mc.iloc[iev_mc]["z_vtx_reco"]
-            # print("MC ievt:", iev_mc, ", vtx =", mc_vtx)
+            se_iev, me_iev, me2_iev = self.get_se_and_me(mc_vtx)
 
-            # require the SE to be within 1 cm of z_vtx of MC, and has not been used for SE or ME
-            df_evts_select_se = self.df_evts[(self.df_evts.z_vtx_reco < mc_vtx + 1) & (self.df_evts.z_vtx_reco > mc_vtx - 1) & (self.df_evts['iev'].isin(used_ev) == False)]
-            
-            # no acceptable SE, go to next MC
-            if (df_evts_select_se.shape[0] == 0):
+            if (se_iev == None):
                 iev_mc += 1
                 continue
             
-            df_evts_select_se_index = 0 # start with the 0th row of the selected SE df
-            
-            # check PbPb SE info
-            se_iev = (int)(df_evts_select_se.iloc[df_evts_select_se_index]["iev"])
-            se_centrality = self.df_evts.iloc[se_iev]["centrality"]
-            se_vtx = self.df_evts.iloc[se_iev]["z_vtx_reco"]
-            # print("SE ievt:", se_iev, ", vtx =", se_vtx, ", centrality =", se_centrality)
-
-            # require the ME to be within 2% of centrality and 1 cm of z_vtx, and has not been used for SE or ME, and is not the same as SE
-            df_evts_select = self.df_evts[(self.df_evts.centrality < se_centrality + 2) & (self.df_evts.centrality > se_centrality - 2) & (self.df_evts.z_vtx_reco < se_vtx + 1) & (self.df_evts.z_vtx_reco > se_vtx - 1) & (self.df_evts['iev'].isin(used_ev) == False) & (self.df_evts.iev != se_iev)]
-            
-            # less than 2 acceptable ME
-            while (df_evts_select.shape[0] < 2):
-                
-                # go to next SE, if there is more acceptable SE
-                if (df_evts_select_se_index < df_evts_select_se.shape[0] - 1):
-                    
-                    df_evts_select_se_index += 1
-                    
-                    # check PbPb SE info
-                    se_iev = (int)(df_evts_select_se.iloc[df_evts_select_se_index]["iev"])
-                    se_centrality = self.df_evts.iloc[se_iev]["centrality"]
-                    se_vtx = self.df_evts.iloc[se_iev]["z_vtx_reco"]
-                    # print("SE ievt:", se_iev, ", vtx =", se_vtx, ", centrality =", se_centrality)
-
-                    # require the ME to be within 2% of centrality and 1 cm of z_vtx, and has not been used for SE or ME, and is not the same as SE
-                    df_evts_select = self.df_evts[(self.df_evts.centrality < se_centrality + 2) & (self.df_evts.centrality > se_centrality - 2) & (self.df_evts.z_vtx_reco < se_vtx + 1) & (self.df_evts.z_vtx_reco > se_vtx - 1) & (self.df_evts['iev'].isin(used_ev) == False) & (self.df_evts.iev != se_iev)]
-
-                # no acceptable SE, go to next MC
-                else:
-                    iev_mc += 1
-                    break
-
-            # no acceptable SE, go to next MC
-            if (df_evts_select.shape[0] < 2):
-                continue
-
-            # check PbPb ME info
-            me_iev = (int)(df_evts_select.iloc[0]["iev"])
-            me_centrality = self.df_evts.iloc[me_iev]["centrality"]
-            me_vtx = self.df_evts.iloc[me_iev]["z_vtx_reco"]
-            # print("ME ievt:", me_iev, ", vtx =", me_vtx, ", centrality =", me_centrality)
-
-            # check PbPb ME2 info
-            me2_iev = (int)(df_evts_select.iloc[1]["iev"])
-            me2_centrality = self.df_evts.iloc[me2_iev]["centrality"]
-            me2_vtx = self.df_evts.iloc[me2_iev]["z_vtx_reco"]
-            # print("ME ievt:", me2_iev, ", vtx =", me2_vtx, ", centrality =", me2_centrality)
-            
             # read in a SE
             self.fj_particles_combined_beforeCS = fj.vectorPJ(self.df_fjparticles.iloc[se_iev])
-            self.fj_particles_PbPb_beforeCS = fj.vectorPJ(self.df_fjparticles.iloc[se_iev])
-            used_ev.append(se_iev)
+            self.used_ev_mask[se_iev] = True
             # read in a ME
             self.fj_particles_combined_beforeCS_mb1 = fj.vectorPJ(self.df_fjparticles.iloc[me_iev])
-            used_ev.append(me_iev)
+            self.used_ev_mask[me_iev] = True
             # read in another ME
             self.fj_particles_combined_beforeCS_mb2 = fj.vectorPJ(self.df_fjparticles.iloc[me2_iev])
-            used_ev.append(me2_iev)
+            self.used_ev_mask[me2_iev] = True
 
             # Add particles from all pythia jets to the list
             self.parts_pythia_ch_jet = fj.vectorPJ()
-            for ijet in range(0, len(jets_pp)):
-                for p in jets_pp[ijet].constituents():
+            for ijet in range(0, len(self.jets_pp)):
+                for p in self.jets_pp[ijet].constituents():
                     self.parts_pythia_ch_jet.push_back(p)
             [self.fj_particles_combined_beforeCS.push_back(p) for p in self.parts_pythia_ch_jet]
 
@@ -580,12 +519,9 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 jets_combined_select.push_back(jets_combined[i])
                 
         if (len(jets_combined_select) == 0):
-            return        
-        
-        if (self.has_real_PbPb_jets() == True):
             return
 
-        R_label = str(self.jetR_list[0]).replace('.', '')# + 'Scaled'
+        R_label = str(self.jetR_list[0]).replace('.', '')
         
         #-------------------------------------------------------------
         # loop over all selected combined jets
@@ -984,31 +920,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
             return True
         else:
             return False
-
-    #---------------------------------------------------------------
-    # Check if the PbPb event that we embed into contains real jets
-    #---------------------------------------------------------------
-    def has_real_PbPb_jets(self):
-
-        has_real_PbPb_jets = False
-        
-        jetR_str = str(self.jetR_list[0]).replace('.', '')
-        jet_def = getattr(self, "jet_def_R%s" % jetR_str)
-        track_selector_ch = getattr(self, "track_selector_ch")
-        jet_selector = getattr(self, "jet_selector_R%s" % jetR_str)
-        cs_PbPb = fj.ClusterSequenceArea(track_selector_ch(self.fj_particles_PbPb_beforeCS), jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
-        area_cut = 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0]
-        pt_sub_cut = 40
-
-        jets_PbPb = fj.sorted_by_pt( jet_selector(cs_PbPb.inclusive_jets()) )        
-
-        for i in range(0, len(jets_PbPb)):
-            pt_sub = jets_PbPb[i].perp()-self.rho*jets_PbPb[i].area()
-            if (pt_sub > pt_sub_cut and jets_PbPb[i].area() > area_cut):
-                has_real_PbPb_jets = True
-                break
-
-        return has_real_PbPb_jets
     
     #---------------------------------------------------------------
     # Return pt-fraction of tracks in jet_pp that are contained in jet_combined
@@ -1116,6 +1027,9 @@ class ProcessEmbedENC(process_base.ProcessBase):
             for h in getattr(self, hist_list_name):
                 h.Scale(pt_hat)
         
+    #---------------------------------------------------------------
+    # Get the maximum jet pT allowed given the event pt_hat
+    #---------------------------------------------------------------
     def check_jet_pt_thrd(self):
         jet_pt_thrd_yaml_file = "/global/cfs/cdirs/alice/youqi/jet_pt_thrd.yaml"
         pt_hat_bin = int(self.input_file_mc.split('/')[len(self.input_file_mc.split('/'))-4]) # depends on exact format of input_file name
@@ -1128,11 +1042,28 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 print("jet pt thrd: " + str(jet_pt_thrd))
         return jet_pt_thrd
 
+    #---------------------------------------------------------------
+    # Get a triplet of event numbers with appropriate event topologies, one for SE and two for MEs
+    #---------------------------------------------------------------
+    def get_se_and_me(self, mc_vtx):
+        
+        se_mask = (np.abs(self.vz_array - mc_vtx) < 1.0)
+        se_candidates = np.where(se_mask)[0]
+        if (len(se_candidates) == 0):
+            return None, None, None
+        
+        se_iev = se_candidates[0]
+        se_vtx = self.vz_array[se_iev]
+        se_cent = self.centrality_array[se_iev]
+
+        me_mask = ( (np.abs(self.centrality_array - se_cent) < 2.0) & (np.abs(self.vz_array - se_vtx) < 1.0) & (~self.used_ev_mask) )
+        me_candidates = np.where(me_mask)[0]
+        if (len(me_candidates) < 2):
+            return None, None, None
+    
+        return se_iev, me_candidates[0], me_candidates[1]
+    
     def process_data(self):
-    
-        self.start_time = time.time()
-    
-        # ------------------------------------------------------------------------
         
         # Use IO helper class to convert detector-level ROOT TTree into
         # a SeriesGroupBy object of fastjet particles per event
@@ -1141,21 +1072,21 @@ class ProcessEmbedENC(process_base.ProcessBase):
         self.df_evts = io.track_df[['iev','centrality','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
         self.nEvents = len(self.df_fjparticles.index)
         self.nTracks = len(io.track_df.index)
-        # print(self.df_evts)
+        # Pre-extract arrays for vectorized operations
+        self.iev_array = self.df_evts['iev'].values
+        self.vz_array = self.df_evts['z_vtx_reco'].values
+        self.centrality_array = self.df_evts['centrality'].values
 
         print('Done with process_data()')
 
+
     def process_mc(self):
     
-        self.start_time = time.time()
-    
-        # ------------------------------------------------------------------------
-        
         # Use IO helper class to convert detector-level ROOT TTree into
         # a SeriesGroupBy object of fastjet particles per event
         io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle', use_ev_id_ext=False, is_det_level=True)
         # io = process_io.ProcessIO(input_file=self.input_file_mc, track_tree_name='tree_Particle_gen', use_ev_id_ext=False)
-        self.df_fjparticles_mc = io.load_data(m=self.m)
+        self.df_fjparticles_mc = io.load_data(min_pt=0.15)
         self.df_evts_mc = io.track_df[['iev','z_vtx_reco']].drop_duplicates().set_index('iev', drop=False)
         # self.df_evts_mc = io.track_df[['iev','z_vtx_gen']].drop_duplicates().set_index('iev', drop=False)
         self.nEvents_mc = len(self.df_fjparticles_mc.index)
