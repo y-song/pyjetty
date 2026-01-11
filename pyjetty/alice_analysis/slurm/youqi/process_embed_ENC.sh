@@ -5,8 +5,8 @@
 # The main use is to give this script to a slurm script.
 
 if [ "$1" != "" ]; then
-  INPUT_FILE=$1
-  echo "Input file: $INPUT_FILE"
+  INPUT_DATA_FILE=$1
+  echo "Input data file: $INPUT_DATA_FILE"
 else
   echo "Wrong command line arguments"
 fi
@@ -19,23 +19,22 @@ else
 fi
 
 if [ "$3" != "" ]; then
-  TASK_ID=$3
-  echo "Task ID: $TASK_ID"
+  FILE_ID=$3
+  echo "File ID: $FILE_ID"
 else
   echo "Wrong command line arguments"
 fi
 
 if [ "$4" != "" ]; then
-  FILE_N=$4
-  SEED=$(( $FILE_N + 0 ))
-  echo "Seed: $SEED"
+  INPUT_MC_FILE=$4
+  echo "Input MC file: $INPUT_MC_FILE"
 else
   echo "Wrong command line arguments"
 fi
 
 if [ "$5" != "" ]; then
-  INPUT_FILE_MC=$5
-  echo "Input file MC: $INPUT_FILE_MC"
+  PROCESS_SCRIPT=$5
+  echo "Process script: $PROCESS_SCRIPT"
 else
   echo "Wrong command line arguments"
 fi
@@ -43,13 +42,12 @@ fi
 # Define output path from relevant sub-path of input file
 OUTPUT_PREFIX="AnalysisResults/youqi/$JOB_ID"
 # Note: suffix depends on file structure of input file -- need to edit appropriately for each dataset
-NUMBER="${INPUT_FILE#*combined}"
-OUTPUT_SUFFIX="${NUMBER%.root}"
+# NUMBER="${INPUT_FILE#*combined}"
+# OUTPUT_SUFFIX="${NUMBER%.root}"
 # OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f11-15)
-OUTPUT_DIR="/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/$OUTPUT_PREFIX/$OUTPUT_SUFFIX"
+OUTPUT_DIR="/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/$OUTPUT_PREFIX/$FILE_ID"
 echo "Output dir: $OUTPUT_DIR"
 mkdir -p $OUTPUT_DIR
 
 # Run python script via pipenv
-# cd ${BASR_DIR}/pyjetty/pyjetty/alice_analysis
-python /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/mixed_event_embed.py -c /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/PbPb/process_data.yaml -f $INPUT_FILE -o $OUTPUT_DIR -fmc $INPUT_FILE_MC
+python $PROCESS_SCRIPT -c /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/PbPb/process_data.yaml -f $INPUT_DATA_FILE -o $OUTPUT_DIR -fmc $INPUT_MC_FILE
