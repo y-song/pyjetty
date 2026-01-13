@@ -296,7 +296,10 @@ class ProcessEmbed(process_base.ProcessBase):
                     self.parts_pythia_ch_jet.push_back(p)
             [self.fj_particles_combined_beforeCS.push_back(p) for p in self.parts_pythia_ch_jet]
 
-            self.constituent_subtractor = ICEventSubtractor(max_distances=fjcontrib.vectorDouble(self.max_distances), alphas=fjcontrib.vectorDouble(self.alphas), max_eta=self.max_eta, jet_median_selector_R=self.jet_median_selector_R, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area)
+            if (self.do_constituent_subtraction):
+                self.constituent_subtractor = CEventSubtractor(max_distance=self.max_distance, alpha=self.alpha, max_eta=self.max_eta, bge_rho_grid_size=self.bge_rho_grid_size, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area, distance_type=fjcontrib.ConstituentSubtractor.deltaR)
+            elif (self.do_ics):
+                self.constituent_subtractor = ICEventSubtractor(max_distances=fjcontrib.vectorDouble(self.max_distances), alphas=fjcontrib.vectorDouble(self.alphas), max_eta=self.max_eta, jet_median_selector_R=self.jet_median_selector_R, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area)
             self.fj_particles_combined_afterCS = self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS)
             self.rho = self.constituent_subtractor.bge_rho.rho()
 
@@ -323,7 +326,7 @@ class ProcessEmbed(process_base.ProcessBase):
         jets_combined = fj.sorted_by_pt( jet_selector(cs_combined.inclusive_jets()) )      
         for i in range(0, len(jets_combined)):
             jet_combined = jets_combined[i]
-            if (jet_combined.perp()-self.rho*jet_combined.area() < pt_sub_cut or jet_combined.area() < area_cut):
+            if (jet_combined.area() < area_cut):
                 continue
                 
         if (len(jets_combined) == 0):

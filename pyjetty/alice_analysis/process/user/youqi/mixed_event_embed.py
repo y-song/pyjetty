@@ -33,6 +33,7 @@ import ecorrel
 from pyjetty.alice_analysis.process.base import process_base
 from pyjetty.alice_analysis.process.base import jet_info
 from pyjetty.mputils.csubtractor import CEventSubtractor
+from pyjetty.mputils.icsubtractor import ICEventSubtractor
 from pyjetty.alice_analysis.process.base import process_io
 
 # Prevent ROOT from stealing focus when plotting
@@ -408,7 +409,10 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 for p in self.fj_particles_combined_beforeCS:
                     print('particle info user_index',p.user_index(),'pt',p.perp(),'phi',p.phi(),'eta',p.eta(),)
 
-            self.constituent_subtractor = CEventSubtractor(max_distance=self.max_distance, alpha=self.alpha, max_eta=self.max_eta, bge_rho_grid_size=self.bge_rho_grid_size, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area, distance_type=fjcontrib.ConstituentSubtractor.deltaR)
+            if (self.do_constituent_subtraction):
+                self.constituent_subtractor = CEventSubtractor(max_distance=self.max_distance, alpha=self.alpha, max_eta=self.max_eta, bge_rho_grid_size=self.bge_rho_grid_size, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area, distance_type=fjcontrib.ConstituentSubtractor.deltaR)
+            elif (self.do_ics):
+                self.constituent_subtractor = ICEventSubtractor(max_distances=fjcontrib.vectorDouble(self.max_distances), alphas=fjcontrib.vectorDouble(self.alphas), max_eta=self.max_eta, jet_median_selector_R=self.jet_median_selector_R, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area)
             self.fj_particles_combined_afterCS = self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS)
             self.rho = self.constituent_subtractor.bge_rho.rho()
             self.fj_particles_combined_afterCS_mb1 = self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS_mb1)
