@@ -5,11 +5,12 @@
 #SBATCH --account=alice
 #SBATCH --job-name=youqi
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=5
-#SBATCH --time=4:00:00
+#SBATCH --time=10:00:00
 #SBATCH --array=1-99
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/slurm-%A_%a.out
+#SBATCH --mem=20G
 
-FILE_PATH_DATA='/global/cfs/cdirs/alice/youqi/lists/files_LHC18qr.txt'
+FILE_PATH_DATA='/global/cfs/cdirs/alice/youqi/lists/files_LHC18qr_randomly_hadd50.txt' #'/global/cfs/cdirs/alice/youqi/lists/files_LHC18qr.txt'
 FILE_PATH_MC='/global/cfs/cdirs/alice/youqi/lists/files_LHC20g4_568_pthat28.txt'
 PROCESS_SCRIPT='/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/embed_area_subtraction.py'
 
