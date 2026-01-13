@@ -527,23 +527,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
         # loop over all selected combined jets
         #-------------------------------------------------------------
         for jet_combined in jets_combined_select:
-
-            constituents = fj.sorted_by_pt(jet_combined.constituents())
-
-            for thrd in self.thrd_list:
-                c_select = fj.vectorPJ()
-                for c in constituents:
-                    if c.pt() < thrd:
-                        break
-                    c_select.append(c)
-                
-            pt_sum = 0
-            for c in c_select:
-                if c.user_index() < 0:
-                    pt_sum += c.perp()
-
-            if (pt_sum/jet_combined.area() > 300.):
-                continue
             
             jet_combined_wta = reclusterer_wta.result(jet_combined)
         
