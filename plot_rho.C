@@ -144,79 +144,6 @@ TH1 *DivideByBinWidth(TH1 *input_hist)
 
 void plot_rho(string pt_min, string pt_max)
 {
-
-    gStyle->SetOptStat(0);
-    SetStyle();
-
-    // string one("");
-    // const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
-    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/46833256/AnalysisResultsFinal.root";
-    const string jetR = "02";
-    const string jetRPoint = "0.2";
-    TFile *f = new TFile(TString(infile), "READ");
-    std::string add_name = "_46833256";
-    std::cout << "output name will be " << add_name << std::endl;
-    std::string outdir = "";
-    std::string outfile = outdir + "rho_embed_PbPb_R" + jetR + "_" + pt_min + "_" + pt_max + add_name + ".root";
-    TFile *f_out = new TFile(outfile.c_str(), "RECREATE");
-
-    const std::string hist_names[] = {"jetcone"+jetRPoint+"_", "perpcone"+jetRPoint+"_", "mbcone"+jetRPoint+"_"};//, "wta_jetcone"+jetRPoint+"_"};
-    std::cout << "checkpoint1" << std::endl;
-
-    std::cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
-
-    std::cout << "R = " << jetR << endl;
-
-    const std::string h1_name = "h_" + hist_names[0] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
-    const std::string h2_name = "h_" + hist_names[1] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
-    const std::string h3_name = "h_" + hist_names[2] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
-    // const std::string h4_name = "h_" + hist_names[3] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
-
-    std::cout << "h1: " << h1_name.c_str() << endl;
-    std::cout << "h2: " << h2_name.c_str() << endl;
-
-    std::cout << "checkpoint2" << endl;
-
-    // define pt related variables
-    TString ptbin = pt_min + " < #it{p}_{T}^{combined jet, sub.} < " + pt_max + " GeV"; //;TString::Format("%s < #it{p}_{T}^{ch. jet} < %s GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
-    std::string pdf_outdir = "";
-
-    TH2 *h1_clone = (TH2 *)f->Get(h1_name.c_str())->Clone(Form("%s_clone", h1_name.c_str()));
-    TH2 *h2_clone = (TH2 *)f->Get(h2_name.c_str())->Clone(Form("%s_clone", h2_name.c_str()));
-    TH2 *h3_clone = (TH2 *)f->Get(h3_name.c_str())->Clone(Form("%s_clone", h3_name.c_str()));
-    // TH2 *h4_clone = (TH2 *)f->Get(h4_name.c_str())->Clone(Form("%s_clone", h4_name.c_str()));
-
-    h1_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max)); // apply cut on jet pt
-    h2_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
-    h3_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
-    // h4_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
-
-    std::cout << "checkpoint4" << endl;
-
-    // Project onto observable axis
-    TH1D *h1_proj = h1_clone->ProjectionY();
-    TH1D *h2_proj = h2_clone->ProjectionY();
-    TH1D *h3_proj = h3_clone->ProjectionY();
-    // TH1D *h4_proj = h4_clone->ProjectionY();
-
-    // Set to appropriate name
-    std::string hname;
-    hname = "h_rho_jetcone_R" + jetR + "_" + pt_min + "_" + pt_max;
-    h1_proj->SetNameTitle(hname.c_str(), hname.c_str());
-    hname = "h_rho_perpcone_R" + jetR + "_" + pt_min + "_" + pt_max;
-    h2_proj->SetNameTitle(hname.c_str(), hname.c_str());
-    hname = "h_rho_mbcone_R" + jetR + "_" + pt_min + "_" + pt_max;
-    h3_proj->SetNameTitle(hname.c_str(), hname.c_str());
-    hname = "h_rho_wta_jetcone_R" + jetR + "_" + pt_min + "_" + pt_max;
-    // h4_proj->SetNameTitle(hname.c_str(), hname.c_str());
-
-    // Rebin
-    TH1 *h1 = DivideByBinWidth((TH1 *)h1_proj->Clone(h1_proj->GetName()));
-    TH1 *h2 = DivideByBinWidth((TH1 *)h2_proj->Clone(h2_proj->GetName()));
-    TH1 *h3 = DivideByBinWidth((TH1 *)h3_proj->Clone(h3_proj->GetName()));
-    // TH1 *h4 = DivideByBinWidth((TH1 *)h4_proj->Clone(h4_proj->GetName()));
-
-    // Format color and style
     int markercolor1 = kBlue; // 1
     int markerstyle1 = kFullCircle;
     int markercolor2 = kGreen + 2;
@@ -231,71 +158,105 @@ void plot_rho(string pt_min, string pt_max)
     int markerstyle6 = 24;
     int markercolor7 = kBlack; // inclusive
     int markerstyle7 = 29;
+    
+    gStyle->SetOptStat(0);
+    SetStyle();
+    
+    const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
+    // const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/48184857/AnalysisResultsFinal.root";
+    const string jetR = "02";
+    const string jetRPoint = "0.2";
+    std::string add_name = "_test";
+    std::string outfile = "rho_embed_PbPb_R" + jetR + "_" + pt_min + "_" + pt_max + add_name + ".root";
 
-    TH1 *h_JetPt = (TH1 *)f->Get(("h_JetPt_ch_combined_R" + jetR).c_str());//((TH2 *)f->Get(("h_JetPt_ch_combined_vs_pp_R" + jetR).c_str()))->ProjectionY();
-    std::cout << "Number of jets from pT bins " << stof(pt_min) / 2 + 1 << "-" << stof(pt_max) / 2 << ": ";
-    double njets = h_JetPt->Integral((int)(stof(pt_min) / 2 + 1), (int)(stof(pt_max) / 2));
-    std::cout << njets << endl;
+    std::cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
+    std::cout << "R = " << jetR << endl;  
 
-    // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
-    // make a canvas
-    TCanvas *c = new TCanvas();
-    ProcessCanvas(c);
-    c->cd();
+    TFile *f = new TFile(TString(infile), "READ");
+    TFile *f_out = new TFile(outfile.c_str(), "RECREATE");
 
-    TLegend *l = new TLegend(0.50, 0.48, 0.8562155, 0.8885185, "");
+    const int numjetaxes = 2;
+    const std::string jetaxis_names[] = {"jet", "matched_jet"};
+    const std::string hist_names[] = {"", "matched_", "mbcone"+jetRPoint+"_", "matched_mbcone"+jetRPoint+"_"};
 
-    addLegendInfo(l, ptbin, jetRPoint);
-    h1->Scale(1.0 / njets);
-    h2->Scale(1.0 / njets);
-    h3->Scale(1.0 / njets);
-    // h4->Scale(1.0 / njets);
-    std::cout << "Mean values: " << h1->GetMean() << ", " << h2->GetMean() << ", " << h3->GetMean() << endl; // << ", " << h4->GetMean() << endl;
+    for (int iobs = 0; iobs < numjetaxes; iobs++)
+    {
+        const std::string h1_name = "h_" + hist_names[iobs] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
+        const std::string h2_name = "h_" + hist_names[iobs+2] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
 
-    FormatHist(l, h1, "jet cone", markercolor1, markerstyle1);
-    // FormatHist(l, h4, "WTA jet cone", markercolor4, markerstyle4);
-    FormatHist(l, h2, "perp cone", markercolor2, markerstyle2);
-    FormatHist(l, h3, "ME cone", markercolor3, markerstyle3);
-    double arr_of_maxes[] = {h1->GetMaximum(), h2->GetMaximum()};
-    double &maxy = *std::max_element(arr_of_maxes, arr_of_maxes + 2); // bc there are 4 elements in arr_of_maxes
-    std::cout << "the max is " << maxy << endl;
-    maxy *= 1.2;
+        std::cout << "iobs: " << iobs << endl;
+        std::cout << "h1: " << h1_name.c_str() << endl;
+        std::cout << "h2: " << h2_name.c_str() << endl;
 
-    h1->Rebin(2);
-    h2->Rebin(2);
-    h3->Rebin(2);
-    // h4->Rebin(2);
+        // clone and process histograms
+        TH2 *h1_clone = (TH2 *)f->Get(h1_name.c_str())->Clone(Form("%s_clone", h1_name.c_str()));
+        TH2 *h2_clone = (TH2 *)f->Get(h2_name.c_str())->Clone(Form("%s_clone", h2_name.c_str()));
+        h1_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max)); // apply cut on jet pt
+        h2_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
+        TH1D *h1_proj = h1_clone->ProjectionY();
+        TH1D *h2_proj = h2_clone->ProjectionY();
+        std::string hname;
+        hname = "h_rho_jetcone_R" + jetR + "_" + pt_min + "_" + pt_max;
+        h1_proj->SetNameTitle(hname.c_str(), hname.c_str());
+        hname = "h_rho_mbcone_R" + jetR + "_" + pt_min + "_" + pt_max;
+        h2_proj->SetNameTitle(hname.c_str(), hname.c_str());
+        TH1 *h1 = DivideByBinWidth((TH1 *)h1_proj->Clone(h1_proj->GetName()));
+        TH1 *h2 = DivideByBinWidth((TH1 *)h2_proj->Clone(h2_proj->GetName()));
+        std::cout << "Integrals: " << h1->Integral() << ", " << h2->Integral() << endl; // ", " << h3->Integral() << ", " << h4->GetMean() << endl;
+        std::cout << "Mean values: " << h1->GetMean() << ", " << h2->GetMean() << endl; // ", " << h3->GetMean() // << ", " << h4->GetMean() << endl;
+   
+        // get normalization
+        TH1 *h_JetPt;
+        if (iobs == 0)
+        {
+            h_JetPt = (TH1 *)f->Get(("h_JetPt_ch_combined_R" + jetR).c_str());
+        }
+        else if (iobs == 1)
+        {
+            h_JetPt = (TH1 *)f->Get(("h_matched_JetPt_ch_combined_R" + jetR).c_str());            
+        }
+        std::cout << "Number of jets from pT bins " << stof(pt_min) / 2 + 1 << "-" << stof(pt_max) / 2 << ": ";
+        double njets = h_JetPt->Integral((int)(stof(pt_min) / 2 + 1), (int)(stof(pt_max) / 2));
+        std::cout << njets << endl;
+        h1->Scale(1.0 / njets);
+        h2->Scale(1.0 / njets);
 
-    h1->GetXaxis()->SetRangeUser(0., 600.);
-    h2->GetXaxis()->SetRangeUser(0., 600.);
-    h3->GetXaxis()->SetRangeUser(0., 600.);
-    // h4->GetXaxis()->SetRangeUser(0., 600.);
-    h1->GetYaxis()->SetRangeUser(0, 0.05);
-    h1->GetXaxis()->SetTitle("#rho_{local} [GeV]");
+        // make a canvas
+        TCanvas *c = new TCanvas();
+        ProcessCanvas(c);
+        c->cd();
 
-    // h1->SetFillStyle(3002);
-    // h1->SetFillColor(kBlue);
-    h1->Draw("hist");
-    h1->Draw("L same");
-    h2->Draw("L same");
-    h3->Draw("L same");
-    // h4->Draw("L same");
+        TLegend *l = new TLegend(0.50, 0.48, 0.8562155, 0.8885185, "");
+        TString ptbin = pt_min + " < #it{p}_{T}^{combined jet, sub.} < " + pt_max + " GeV";
+        addLegendInfo(l, ptbin, jetRPoint);
 
-    // draw legend
-    l->Draw("same");
+        FormatHist(l, h1, TString::Format("jet cone (%.1f)", h1->GetMean()), markercolor1, markerstyle1);
+        FormatHist(l, h2, "ME cone", markercolor3, markerstyle3);
 
-    std::string fname = outdir + "rho_embed_PbPb_R" + jetR + "_" + pt_min + "_" + pt_max + add_name + ".pdf";
-    const char *fnamec = fname.c_str();
-    c->SaveAs(fnamec);
-    delete c;
-    delete l;
+        h1->Rebin(2);
+        h2->Rebin(2);
+        h1->GetXaxis()->SetRangeUser(0., 600.);
+        h2->GetXaxis()->SetRangeUser(0., 600.);
+        h1->GetYaxis()->SetRangeUser(0, 0.05);
+        h1->GetXaxis()->SetTitle("#rho_{local} [GeV]");
 
-    // Write rebinned histograms to root file
-    f_out->cd();
-    h1->Write();
-    h2->Write();
-    h3->Write();
-    // h4->Write();
+        h1->Draw("hist");
+        h1->Draw("L same");
+        h2->Draw("L same");
+        l->Draw("same");
+
+        // save canvas to pdf
+        std::string fname = jetaxis_names[iobs] + "_rho_embed_PbPb_R" + jetR + "_" + pt_min + "_" + pt_max + add_name + ".pdf";
+        const char *fnamec = fname.c_str();
+        c->SaveAs(fnamec);
+        delete c;
+        delete l;
+
+        // save histograms to root file
+        f_out->cd();
+        h1->Write();
+        h2->Write();
+    }
 
     f->Close();
     delete f;
