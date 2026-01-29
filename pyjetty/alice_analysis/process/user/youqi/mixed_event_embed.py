@@ -456,9 +456,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
         jet_selector_40 = getattr(self, "jet_selector_40_R%s" % jetR_str)
         area_cut = 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0]
         
-        cs_combined = fj.ClusterSequenceArea(track_selector_ch(self.fj_particles_combined_beforeCS), jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
-        jets_combined_preselect = fj.sorted_by_pt( jet_selector_40(cs_combined.inclusive_jets()) )        
-        
+        cs_combined = fj.ClusterSequenceArea(track_selector_ch(self.fj_particles_combined_afterCS), jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
+        jets_combined_preselect = fj.sorted_by_pt( jet_selector_40(cs_combined.inclusive_jets()) )
         jets_combined = []
         jets_combined_wta = []
         for jet_combined in jets_combined_preselect:
@@ -471,7 +470,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         if (len(jets_combined) == 0):
             return
 
-        # match pp jets to combined jets
+        # match pp jets to subtracted combined jets
         jets_combined_matched_index = [-1 for x in range(0, len(jets_combined))]
         for ijet_pp in range(0, len(self.jets_pp)):
             jet_pp = self.jets_pp[ijet_pp]
@@ -491,14 +490,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
         for i in range(0, len(jets_combined)):
             
             jet_combined_wta = jets_combined_wta[i]
-            jet_constituents_afterCS = self.find_parts_around_jet(self.fj_particles_combined_afterCS, jet_combined_wta, self.jetR_list[0])
             jet_constituents_beforeCS = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, jet_combined_wta, self.jetR_list[0])
-            if (len(jet_constituents_afterCS) == 0):
-                continue
-
-            jet_sub_pt = 0
-            for p in jet_constituents_afterCS:
-                jet_sub_pt += p.perp()
+            jet_sub_pt = jets_combined[i].perp()
 
             R_label = str(self.jetR_list[0]).replace('.', '')
             hname = 'h_JetPt_ch_combined_R{}'.format(R_label)
@@ -517,22 +510,22 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 self.fill_2mbcone(jet_constituents_beforeCS, jet_sub_pt, jet_combined_wta, self.jetR_list[0], "_matched")
 
     #---------------------------------------------------------------
-    # Fill perp cone for matched combined jets
+    # Fill perp cone for combined jets
     #---------------------------------------------------------------
     def fill_jets(self, jet_constituents, jet_pt, jetR, hist_prefix=""):
 
         R_label = str(jetR).replace('.', '')
         
-        # fill EEC for matched comb jet using comb jet (after rho subtraction) for jet pT
+        # fill EEC for comb jet using comb jet (after rho subtraction) for jet pT
         hname = 'h{}_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(hist_prefix, R_label)
         self.fill_ENC_histograms(hname, jet_pt, jet_constituents)
 
-        # fill EEC for matched comb jet using comb jet (after rho subtraction) for jet pT
+        # fill EEC for comb jet using comb jet (after rho subtraction) for jet pT
         hname = 'h{}_{{}}_JetPt_ch_combined_R{}_{{}}'.format(hist_prefix, R_label)
         self.fill_rho_local_histograms(hname, jet_pt, jetR, jet_constituents)
 
     #---------------------------------------------------------------
-    # Fill mb cone for matched combined jets
+    # Fill mb cone for combined jets
     #---------------------------------------------------------------
     def fill_mbcone(self, jet_constituents, jet_pt, jet_axis, jetR, hist_prefix=""):
 
@@ -555,7 +548,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
             part.set_user_index(-999)
             parts_in_cone1.append(part)
 
-        # fill EEC for matched comb jet using comb jet (rho subtracted) for jet pT
         hname = 'h{}_mbcone{}_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(hist_prefix, jetR, R_label)
         self.fill_ENC_histograms(hname, jet_pt, parts_in_cone1)
 
@@ -567,7 +559,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
         R_label = str(jetR).replace('.', '') #+ 'Scaled'
         mbcone_R = jetR
         
-        # Do MB cone for the E-scheme jet and E-scheme jet cone
         mb_jet1 = fj.PseudoJet()
         mb_jet1.reset_PtYPhiM(jet_axis.pt(), jet_axis.rapidity(), jet_axis.phi(), jet_axis.m())
         mb_jet2 = fj.PseudoJet()
@@ -589,7 +580,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         self.fill_ENC_histograms(hname, jet_pt, parts_in_cone)
 
     #---------------------------------------------------------------
-    # Fill matched ENC histograms
+    # Fill ENC histograms
     #---------------------------------------------------------------
     def fill_ENC_histograms(self, hname, jet_pt, cone_parts):
         
@@ -602,7 +593,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 if c.pt() < thrd:
                     break
                 c_select.append(c) # NB: use the break statement since constituents are already sorted
-            # print("N(constituents) w/ thrd:", len(c_select))
 
             if 'combined' in hname:
                 jet_pt_weight = jet_pt
@@ -620,7 +610,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 getattr(self, hname.format(str(ipoint) + pair_type_label,thrd_label)).Fill(jet_pt_select, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
 
     #---------------------------------------------------------------
-    # Fill matched rho local histograms
+    # Fill rho local histograms
     #---------------------------------------------------------------
     def fill_rho_local_histograms(self, hname, jet_pt, coneR, cone_parts):
         
@@ -837,7 +827,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         se_vtx = self.vz_array[se_iev]
         se_cent = self.centrality_array[se_iev]
 
-        me_mask = ( (np.abs(self.centrality_array - se_cent) < 2.0) & (np.abs(self.vz_array - se_vtx) < 1.0) & (~self.used_ev_mask) )
+        me_mask = ( (np.abs(self.centrality_array - se_cent) < 1.0) & (np.abs(self.vz_array - se_vtx) < 1.0) & (~self.used_ev_mask) )
         me_candidates = np.where(me_mask)[0]
         if (len(me_candidates) < 2):
             return None, None, None
