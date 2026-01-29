@@ -172,7 +172,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
             hist_list_name = "hist_list_R%s" % str(jetR).replace('.', '')
             setattr(self, hist_list_name, [])
 
-            R_label = str(jetR).replace('.', '')# + 'Scaled'
+            R_label = str(jetR).replace('.', '')
 
             name = 'h_JetPt_ch_combined_R{}'.format(R_label)
             pt_bins = linbins(0,1000,500)
@@ -180,13 +180,11 @@ class ProcessEmbedENC(process_base.ProcessBase):
             h.GetYaxis().SetTitle('p_{T, comb jet}')
             setattr(self, name, h)
             getattr(self, hist_list_name).append(h)
-            
-            name = 'h_area_JetPt_ch_combined_R{}'.format(R_label)
-            pt_bins = linbins(0,200,200)
-            area_bins = linbins(0,1,100)
-            h = ROOT.TH2D(name, name, 200, pt_bins, 100, area_bins)
-            h.GetXaxis().SetTitle('p_{T, comb jet}')
-            h.GetYaxis().SetTitle('Area')
+
+            name = 'h_matched_JetPt_ch_combined_R{}'.format(R_label)
+            pt_bins = linbins(0,1000,500)
+            h = ROOT.TH1D(name, name, 500, pt_bins)
+            h.GetYaxis().SetTitle('p_{T, comb jet}')
             setattr(self, name, h)
             getattr(self, hist_list_name).append(h)
             
@@ -212,10 +210,27 @@ class ProcessEmbedENC(process_base.ProcessBase):
                     setattr(self, name, h)
                     getattr(self, hist_list_name).append(h)
 
+                    name = 'h_matched_{}_JetPt_ch_combined_R{}_{}'.format(observable, R_label, thrd_label)
+                    print('Initialize histogram',name)
+                    h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
+                    h.GetXaxis().SetTitle('p_{T, comb jet}')
+                    h.GetYaxis().SetTitle(observable)
+                    setattr(self, name, h)
+                    getattr(self, hist_list_name).append(h)
+
                     for coneR in self.coneR_list:
                         
-                        # mbcone combined
+                        # jet mbcone combined
                         name = 'h_mbcone{}_{}_JetPt_ch_combined_R{}_{}'.format(coneR, observable, R_label, thrd_label)
+                        print('Initialize histogram',name)
+                        h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
+                        h.GetXaxis().SetTitle('p_{T, comb jet}')
+                        h.GetYaxis().SetTitle(observable)
+                        setattr(self, name, h)
+                        getattr(self, hist_list_name).append(h)
+                        
+                        # matched jet mbcone combined
+                        name = 'h_matched_mbcone{}_{}_JetPt_ch_combined_R{}_{}'.format(coneR, observable, R_label, thrd_label)
                         print('Initialize histogram',name)
                         h = ROOT.TH2D(name, name, 200, pt_bins, obs_nbins, obs_bins)
                         h.GetXaxis().SetTitle('p_{T, comb jet}')
@@ -240,6 +255,14 @@ class ProcessEmbedENC(process_base.ProcessBase):
                 setattr(self, name, h)
                 getattr(self, hist_list_name).append(h)
 
+                name = 'h_matched_ENC{}_JetPt_ch_combined_R{}_{}'.format(str(ipoint), R_label, thrd_label)
+                print('Initialize histogram',name)
+                h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                h.GetXaxis().SetTitle('p_{T, comb jet}')
+                h.GetYaxis().SetTitle('R_{L}')
+                setattr(self, name, h)
+                getattr(self, hist_list_name).append(h)
+
                 for pair_type_label in self.pair_type_labels:
 
                     # truth information
@@ -252,7 +275,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                     setattr(self, name, h)
                     getattr(self, hist_list_name).append(h)
 
-                    name = 'h_jetcone_ENC{}_JetPt_ch_combined_R{}_{}'.format(str(ipoint)+pair_type_label, R_label, thrd_label)
+                    name = 'h_matched_ENC{}_JetPt_ch_combined_R{}_{}'.format(str(ipoint)+pair_type_label, R_label, thrd_label)
                     print('Initialize histogram',name)
                     h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
                     h.GetXaxis().SetTitle('p_{T, comb jet}')
@@ -263,7 +286,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                     for coneR in self.coneR_list:
 
                         # jet mbcone combined
-                        name = 'h_jet_mbcone{}_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
+                        name = 'h_mbcone{}_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
                         print('Initialize histogram',name)
                         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
                         h.GetXaxis().SetTitle('p_{T, comb jet}')
@@ -271,8 +294,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
                         setattr(self, name, h)
                         getattr(self, hist_list_name).append(h)
 
-                        # jetcone mbcone combined
-                        name = 'h_jetcone_mbcone{}_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
+                        # matched jet mbcone combined
+                        name = 'h_matched_mbcone{}_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
                         print('Initialize histogram',name)
                         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
                         h.GetXaxis().SetTitle('p_{T, comb jet}')
@@ -283,6 +306,14 @@ class ProcessEmbedENC(process_base.ProcessBase):
                         if (pair_type_label == '_sb'):
 
                             name = 'h_2mbcone{}_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
+                            print('Initialize histogram',name)
+                            h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
+                            h.GetXaxis().SetTitle('p_{T, pp jet}')
+                            h.GetYaxis().SetTitle('R_{L}')
+                            setattr(self, name, h)
+                            getattr(self, hist_list_name).append(h)
+                            
+                            name = 'h_matched_2mbcone{}_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
                             print('Initialize histogram',name)
                             h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
                             h.GetXaxis().SetTitle('p_{T, pp jet}')
@@ -309,20 +340,11 @@ class ProcessEmbedENC(process_base.ProcessBase):
             setattr(self, "jet_def_wta_R%s" % jetR_str, jet_def_wta)
             print(jet_def_wta)
 
-            jet_def_manual = fj.JetDefinition(fj.antikt_algorithm, 2*jetR)
-            setattr(self, "jet_def_manual_R%s" % jetR_str, jet_def_manual)
-            print(jet_def_manual)
-        
-        # pwarning('max eta for particles after hadronization set to', self.max_eta_hadron)
         if self.rm_trk_min_pt:
             track_selector_ch = fj.SelectorPtMin(0)
         else:
             track_selector_ch = fj.SelectorPtMin(0.15)
-
         setattr(self, "track_selector_ch", track_selector_ch)
-
-        pfc_selector1 = fj.SelectorPtMin(1.)
-        setattr(self, "pfc_def_10", pfc_selector1)
 
         for jetR in self.jetR_list:
             jetR_str = str(jetR).replace('.', '')
@@ -409,18 +431,12 @@ class ProcessEmbedENC(process_base.ProcessBase):
                     self.parts_pythia_ch_jet.push_back(p)
             [self.fj_particles_combined_beforeCS.push_back(p) for p in self.parts_pythia_ch_jet]
 
-            if self.debug_level > 1:
-                for p in self.fj_particles_combined_beforeCS:
-                    print('particle info user_index',p.user_index(),'pt',p.perp(),'phi',p.phi(),'eta',p.eta(),)
-
             if (self.do_constituent_subtraction):
                 self.constituent_subtractor = CEventSubtractor(max_distance=self.max_distance, alpha=self.alpha, max_eta=self.max_eta, bge_rho_grid_size=self.bge_rho_grid_size, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area, distance_type=fjcontrib.ConstituentSubtractor.deltaR)
             elif (self.do_ics):
                 self.constituent_subtractor = ICEventSubtractor(max_distances=fjcontrib.vectorDouble(self.max_distances), alphas=fjcontrib.vectorDouble(self.alphas), max_eta=self.max_eta, jet_median_selector_R=self.jet_median_selector_R, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area)
             self.fj_particles_combined_afterCS = self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS)
             self.rho = self.constituent_subtractor.bge_rho.rho()
-            self.fj_particles_combined_afterCS_mb1 = self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS_mb1)
-            self.fj_particles_combined_afterCS_mb2 = self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS_mb2)
 
             self.hNevents.Fill(0)
             self.analyze_jets()
@@ -436,88 +452,97 @@ class ProcessEmbedENC(process_base.ProcessBase):
         jet_def = getattr(self, "jet_def_R%s" % jetR_str)
         jet_def_wta = getattr(self, "jet_def_wta_R%s" % jetR_str)
         reclusterer_wta = fjcontrib.Recluster(jet_def_wta)
-        jet_def_manual = getattr(self, "jet_def_manual_R%s" % jetR_str)
-        reclusterer_manual = fjcontrib.Recluster(jet_def_manual)
         track_selector_ch = getattr(self, "track_selector_ch")
         jet_selector_40 = getattr(self, "jet_selector_40_R%s" % jetR_str)
         area_cut = 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0]
         
         cs_combined = fj.ClusterSequenceArea(track_selector_ch(self.fj_particles_combined_beforeCS), jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
-        jets_combined = fj.sorted_by_pt( jet_selector_40(cs_combined.inclusive_jets()) )        
-        jets_combined_wta = []
+        jets_combined_preselect = fj.sorted_by_pt( jet_selector_40(cs_combined.inclusive_jets()) )        
         
-        for jet_combined in jets_combined:
+        jets_combined = []
+        jets_combined_wta = []
+        for jet_combined in jets_combined_preselect:
             if (jet_combined.area() < area_cut):
                 continue
+            jets_combined.append(jet_combined)
             jet_combined_wta = reclusterer_wta.result(jet_combined)
             jets_combined_wta.append(jet_combined_wta)
 
-        if (len(jets_combined_wta) == 0):
+        if (len(jets_combined) == 0):
             return
 
-        # Create a lookup dictionary for fj_particles_combined_beforeCS
-        p_beforeCS_dict = {p.user_index(): p for p in self.fj_particles_combined_beforeCS}
-
+        # match pp jets to combined jets
+        jets_combined_matched_index = [-1 for x in range(0, len(jets_combined))]
+        for ijet_pp in range(0, len(self.jets_pp)):
+            jet_pp = self.jets_pp[ijet_pp]
+            jet_combined_matched = []
+            ijet_combined_matched = -1
+            for ijet_combined in range(0, len(jets_combined)):
+                jet_combined = jets_combined[ijet_combined]
+                if (jets_combined_matched_index[ijet_combined] != -1): # combined jet already has a match
+                    continue
+                if (self.mc_fraction(jet_pp, jet_combined) > self.mc_fraction_threshold) and (self.is_geo_matched(jet_combined, jet_pp, self.jetR_list[0])):
+                    jet_combined_matched.append(jet_combined)
+                    ijet_combined_matched = ijet_combined
+            if (len(jet_combined_matched) == 1): # pp jet has a unique combined jet match
+                jets_combined_matched_index[ijet_combined_matched] = ijet_pp
+                
         # Main jet loop
-        for i in range(0, len(jets_combined_wta)):
+        for i in range(0, len(jets_combined)):
             
             jet_combined_wta = jets_combined_wta[i]
             jet_constituents_afterCS = self.find_parts_around_jet(self.fj_particles_combined_afterCS, jet_combined_wta, self.jetR_list[0])
+            jet_constituents_beforeCS = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, jet_combined_wta, self.jetR_list[0])
             if (len(jet_constituents_afterCS) == 0):
                 continue
 
-            jet_constituents_beforeCS_survived = fj.vectorPJ()
             jet_sub_pt = 0
-            
-            # match the constituents in the CS subtracted jet to their unsubtracted counterparts
             for p in jet_constituents_afterCS:
-                p_beforeCS = p_beforeCS_dict.get(p.user_index())
-                jet_constituents_beforeCS_survived.push_back(p_beforeCS)
                 jet_sub_pt += p.perp()
 
             R_label = str(self.jetR_list[0]).replace('.', '')
             hname = 'h_JetPt_ch_combined_R{}'.format(R_label)
             getattr(self, hname).Fill(jet_sub_pt)
             
-            self.fill_jets(jet_constituents_beforeCS_survived, jet_sub_pt, self.jetR_list[0])
-            self.fill_mbcone(jet_constituents_beforeCS_survived, jet_sub_pt, jet_combined_wta, self.jetR_list[0], self.coneR_list[0])
-            self.fill_2mbcone(jet_constituents_beforeCS_survived, jet_sub_pt, jet_combined_wta, self.jetR_list[0], self.coneR_list[0])
+            self.fill_jets(jet_constituents_beforeCS, jet_sub_pt, self.jetR_list[0])
+            self.fill_mbcone(jet_constituents_beforeCS, jet_sub_pt, jet_combined_wta, self.jetR_list[0])
+            self.fill_2mbcone(jet_constituents_beforeCS, jet_sub_pt, jet_combined_wta, self.jetR_list[0])
+
+            if (jets_combined_matched_index[i] != -1):
+                hname = 'h_matched_JetPt_ch_combined_R{}'.format(R_label)
+                getattr(self, hname).Fill(jet_sub_pt)
+
+                self.fill_jets(jet_constituents_beforeCS, jet_sub_pt, self.jetR_list[0], "_matched")
+                self.fill_mbcone(jet_constituents_beforeCS, jet_sub_pt, jet_combined_wta, self.jetR_list[0], "_matched")
+                self.fill_2mbcone(jet_constituents_beforeCS, jet_sub_pt, jet_combined_wta, self.jetR_list[0], "_matched")
 
     #---------------------------------------------------------------
     # Fill perp cone for matched combined jets
     #---------------------------------------------------------------
-    def fill_jets(self, jet_constituents, jet_pt, jetR):
+    def fill_jets(self, jet_constituents, jet_pt, jetR, hist_prefix=""):
 
-        R_label = str(jetR).replace('.', '')# + 'Scaled'
+        R_label = str(jetR).replace('.', '')
         
         # fill EEC for matched comb jet using comb jet (after rho subtraction) for jet pT
-        hname = 'h_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
+        hname = 'h{}_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(hist_prefix, R_label)
         self.fill_ENC_histograms(hname, jet_pt, jet_constituents)
 
         # fill EEC for matched comb jet using comb jet (after rho subtraction) for jet pT
-        hname = 'h_{{}}_JetPt_ch_combined_R{}_{{}}'.format(R_label)
+        hname = 'h{}_{{}}_JetPt_ch_combined_R{}_{{}}'.format(hist_prefix, R_label)
         self.fill_rho_local_histograms(hname, jet_pt, jetR, jet_constituents)
 
     #---------------------------------------------------------------
     # Fill mb cone for matched combined jets
     #---------------------------------------------------------------
-    def fill_mbcone(self, jet_constituents, jet_pt, jet_axis, jetR, coneR):
+    def fill_mbcone(self, jet_constituents, jet_pt, jet_axis, jetR, hist_prefix=""):
 
         R_label = str(jetR).replace('.', '') #+ 'Scaled'
-        mbcone_R = coneR
+        mbcone_R = jetR
         
         # Do mb cones for the E-scheme jet and E-scheme jet cone
         mb_jet1 = fj.PseudoJet()
         mb_jet1.reset_PtYPhiM(jet_axis.pt(), jet_axis.rapidity(), jet_axis.phi(), jet_axis.m())
-        parts_in_mbcone1 = fj.vectorPJ()
-        # Step 1: Find particles around unsub jet in AFTER CS particles (geometric selection)
-        parts_in_mbcone1_afterCS = self.find_parts_around_jet(self.fj_particles_combined_afterCS_mb1, mb_jet1, mbcone_R)
-        # Step 2: Create lookup dictionary for BEFORE CS particles
-        parts_in_mbcone1_beforeCS_dict = {p.user_index(): p for p in self.fj_particles_combined_beforeCS_mb1}
-        # Step 3: Match each afterCS particle back to its beforeCS version
-        for part_in_mbcone1_afterCS in parts_in_mbcone1_afterCS:
-            part_in_mbcone1_beforeCS = parts_in_mbcone1_beforeCS_dict.get(part_in_mbcone1_afterCS.user_index())
-            parts_in_mbcone1.push_back(part_in_mbcone1_beforeCS)
+        parts_in_mbcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb1, mb_jet1, mbcone_R)
         
         # use 999 and -999 to distinguish from previous used labeling numbers
         parts_in_cone1 = fj.vectorPJ()
@@ -531,16 +556,16 @@ class ProcessEmbedENC(process_base.ProcessBase):
             parts_in_cone1.append(part)
 
         # fill EEC for matched comb jet using comb jet (rho subtracted) for jet pT
-        hname = 'h_jet_mbcone{}_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(coneR, R_label)
+        hname = 'h{}_mbcone{}_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(hist_prefix, jetR, R_label)
         self.fill_ENC_histograms(hname, jet_pt, parts_in_cone1)
 
-        hname = 'h_mbcone{}_{{}}_JetPt_ch_combined_R{}_{{}}'.format(coneR, R_label)
-        self.fill_rho_local_histograms(hname, jet_pt, coneR, parts_in_cone1)
+        hname = 'h{}_mbcone{}_{{}}_JetPt_ch_combined_R{}_{{}}'.format(hist_prefix, jetR, R_label)
+        self.fill_rho_local_histograms(hname, jet_pt, jetR, parts_in_cone1)
 
-    def fill_2mbcone(self, jet_constituents, jet_pt, jet_axis, jetR, coneR):
+    def fill_2mbcone(self, jet_constituents, jet_pt, jet_axis, jetR, hist_prefix=""):
 
         R_label = str(jetR).replace('.', '') #+ 'Scaled'
-        mbcone_R = coneR
+        mbcone_R = jetR
         
         # Do MB cone for the E-scheme jet and E-scheme jet cone
         mb_jet1 = fj.PseudoJet()
@@ -548,25 +573,8 @@ class ProcessEmbedENC(process_base.ProcessBase):
         mb_jet2 = fj.PseudoJet()
         mb_jet2.reset_PtYPhiM(jet_axis.pt(), jet_axis.rapidity(), jet_axis.phi(), jet_axis.m())
         
-        parts_in_mbcone1 = fj.vectorPJ()
-        # Step 1: Find particles around jet in AFTER CS particles (geometric selection)
-        parts_in_mbcone1_afterCS = self.find_parts_around_jet(self.fj_particles_combined_afterCS_mb1, mb_jet1, mbcone_R)
-        # Step 2: Create lookup dictionary for BEFORE CS particles
-        parts_in_mbcone1_beforeCS_dict = {p.user_index(): p for p in self.fj_particles_combined_beforeCS_mb1}
-        # Step 3: Match each afterCS particle back to its beforeCS version
-        for part_in_mbcone1_afterCS in parts_in_mbcone1_afterCS:
-            part_in_mbcone1_beforeCS = parts_in_mbcone1_beforeCS_dict.get(part_in_mbcone1_afterCS.user_index())
-            parts_in_mbcone1.push_back(part_in_mbcone1_beforeCS)
-            
-        parts_in_mbcone2 = fj.vectorPJ()
-        # Step 1: Find particles around jet in AFTER CS particles (geometric selection)
-        parts_in_mbcone2_afterCS = self.find_parts_around_jet(self.fj_particles_combined_afterCS_mb2, mb_jet2, mbcone_R)
-        # Step 2: Create lookup dictionary for BEFORE CS particles
-        parts_in_mbcone2_beforeCS_dict = {p.user_index(): p for p in self.fj_particles_combined_beforeCS_mb2}
-        # Step 3: Match each afterCS particle back to its beforeCS version
-        for part_in_mbcone2_afterCS in parts_in_mbcone2_afterCS:
-            part_in_mbcone2_beforeCS = parts_in_mbcone2_beforeCS_dict.get(part_in_mbcone2_afterCS.user_index())
-            parts_in_mbcone2.push_back(part_in_mbcone2_beforeCS)
+        parts_in_mbcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb1, mb_jet1, mbcone_R)     
+        parts_in_mbcone2 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb2, mb_jet2, mbcone_R)
 
         # label one perpcone as "sig" and the other as "bkg" so the perp1-perp2 and perp1(2)-perp1(2) correlations can be saved separately
         parts_in_cone = fj.vectorPJ()
@@ -577,7 +585,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
             part.set_user_index(-999)
             parts_in_cone.append(part)
             
-        hname = 'h_2mbcone{}_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(coneR, R_label)
+        hname = 'h{}_2mbcone{}_ENC{{}}_JetPt_ch_combined_R{}_{{}}'.format(hist_prefix, jetR, R_label)
         self.fill_ENC_histograms(hname, jet_pt, parts_in_cone)
 
     #---------------------------------------------------------------
