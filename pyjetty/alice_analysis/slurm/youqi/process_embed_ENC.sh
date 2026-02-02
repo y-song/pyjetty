@@ -13,7 +13,6 @@ fi
 
 if [ "$2" != "" ]; then
   JOB_ID=$2
-  echo "Job ID: $JOB_ID"
 else
   echo "Wrong command line arguments"
 fi
@@ -34,17 +33,12 @@ fi
 
 if [ "$5" != "" ]; then
   PROCESS_SCRIPT=$5
-  echo "Process script: $PROCESS_SCRIPT"
 else
   echo "Wrong command line arguments"
 fi
 
 # Define output path from relevant sub-path of input file
 OUTPUT_PREFIX="AnalysisResults/youqi/$JOB_ID"
-# Note: suffix depends on file structure of input file -- need to edit appropriately for each dataset
-# NUMBER="${INPUT_FILE#*combined}"
-# OUTPUT_SUFFIX="${NUMBER%.root}"
-# OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f11-15)
 OUTPUT_DIR="/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/$OUTPUT_PREFIX/$FILE_ID"
 echo "Output dir: $OUTPUT_DIR"
 mkdir -p $OUTPUT_DIR
