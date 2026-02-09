@@ -255,6 +255,10 @@ class ProcessEmbed(process_base.ProcessBase):
             self.cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
             self.jets_pp = fj.sorted_by_pt( jet_selector(self.cs_pp.inclusive_jets()) )
             
+            if (len(self.jets_pp) == 0):
+                iev_mc += 1
+                continue
+            
             # if leading jet pT is over the thrd for the given pTHat bin, go to next MC
             if (len(self.jets_pp) > 0 and self.jets_pp[0].perp() > jet_pt_thrd):
                 print("skip due to high weight")
@@ -280,10 +284,8 @@ class ProcessEmbed(process_base.ProcessBase):
                 bkg_counter -= 1
                 self.fj_particles_combined_beforeCS.push_back(p)
             # read in a ME
-            self.fj_particles_combined_beforeCS_mb1 = fj.vectorPJ(self.df_fjparticles.iloc[me_iev])
             self.used_ev_mask[me_iev] = True
             # read in another ME
-            self.fj_particles_combined_beforeCS_mb2 = fj.vectorPJ(self.df_fjparticles.iloc[me2_iev])
             self.used_ev_mask[me2_iev] = True
 
             # Add particles from all pythia jets to the list

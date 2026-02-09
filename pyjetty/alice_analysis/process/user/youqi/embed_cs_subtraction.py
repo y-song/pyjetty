@@ -285,7 +285,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                         setattr(self, name, h)
                         getattr(self, hist_list_name).append(h)
 
-                            # matched jet mbcone combined
+                        # matched jet mbcone combined
                         name = 'h_matched_mbcone{}_ENC{}_JetPt_ch_combined_R{}_{}'.format(coneR, str(ipoint)+pair_type_label, R_label, thrd_label)
                         print('Initialize histogram',name)
                         h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
@@ -340,7 +340,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         for jetR in self.jetR_list:
             jetR_str = str(jetR).replace('.', '')
             
-            jet_selector = fj.SelectorPtMin(5) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
+            jet_selector = fj.SelectorPtMin(40) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
             setattr(self, "jet_selector_R%s" % jetR_str, jet_selector)
 
             jet_selector_40 = fj.SelectorPtMin(40) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
@@ -370,6 +370,10 @@ class ProcessEmbedENC(process_base.ProcessBase):
 
             self.cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
             self.jets_pp = fj.sorted_by_pt( jet_selector(self.cs_pp.inclusive_jets()) )
+
+            if (len(self.jets_pp) == 0):
+                iev_mc += 1
+                continue
             
             # if leading jet pT is over the thrd for the given pTHat bin, go to next MC
             if (len(self.jets_pp) > 0 and self.jets_pp[0].perp() > jet_pt_thrd):
@@ -477,7 +481,9 @@ class ProcessEmbedENC(process_base.ProcessBase):
                     ijet_combined_matched = ijet_combined
             if (len(jet_combined_matched) == 1): # pp jet has a unique combined jet match
                 jets_combined_matched_index[ijet_combined_matched] = ijet_pp
-                
+    
+        R_label = str(self.jetR_list[0]).replace('.', '')
+       
         # Main jet loop
         for i in range(0, len(jets_combined)):
             
@@ -485,7 +491,6 @@ class ProcessEmbedENC(process_base.ProcessBase):
             jet_constituents_beforeCS = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, jet_combined_wta, self.jetR_list[0])
             jet_sub_pt = jets_combined[i].perp()
 
-            R_label = str(self.jetR_list[0]).replace('.', '')
             hname = 'h_JetPt_ch_combined_R{}'.format(R_label)
             getattr(self, hname).Fill(jet_sub_pt)
             
@@ -528,11 +533,12 @@ class ProcessEmbedENC(process_base.ProcessBase):
         mb_jet1 = fj.PseudoJet()
         mb_jet1.reset_PtYPhiM(jet_axis.pt(), jet_axis.rapidity(), jet_axis.phi(), jet_axis.m())
         parts_in_mbcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb1, mb_jet1, mbcone_R)
+        parts_in_jet = self.copy_parts(jet_constituents)
 
         # use 999 and -999 to distinguish from previous used labeling numbers
         parts_in_cone1 = fj.vectorPJ()
         # fill parts from jet
-        for part in jet_constituents: # everything in the jet cone is "signal"
+        for part in parts_in_jet: # everything in the jet cone is "signal"
             part.set_user_index(999)
             parts_in_cone1.append(part)
         # fill parts from mb cone 1

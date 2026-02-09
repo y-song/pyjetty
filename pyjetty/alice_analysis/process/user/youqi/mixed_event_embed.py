@@ -32,7 +32,6 @@ import pythiaext
 import ecorrel
 
 from pyjetty.alice_analysis.process.base import process_base
-from pyjetty.alice_analysis.process.base import jet_info
 from pyjetty.mputils.csubtractor import CEventSubtractor
 from pyjetty.mputils.icsubtractor import ICEventSubtractor
 from pyjetty.alice_analysis.process.base import process_io
@@ -380,6 +379,10 @@ class ProcessEmbedENC(process_base.ProcessBase):
             self.cs_pp = fj.ClusterSequence(track_selector_ch(self.parts_pythia_ch), jet_def)
             self.jets_pp = fj.sorted_by_pt( jet_selector(self.cs_pp.inclusive_jets()) )
             
+            if (len(self.jets_pp) == 0):
+                iev_mc += 1
+                continue
+            
             # if leading jet pT is over the thrd for the given pTHat bin, go to next MC
             if (len(self.jets_pp) > 0 and self.jets_pp[0].perp() > jet_pt_thrd):
                 print("skip due to high weight")
@@ -485,7 +488,9 @@ class ProcessEmbedENC(process_base.ProcessBase):
                     ijet_combined_matched = ijet_combined
             if (len(jet_combined_matched) == 1): # pp jet has a unique combined jet match
                 jets_combined_matched_index[ijet_combined_matched] = ijet_pp
-                
+
+        R_label = str(self.jetR_list[0]).replace('.', '')
+        
         # Main jet loop
         for i in range(0, len(jets_combined)):
             
@@ -493,7 +498,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
             jet_constituents_beforeCS = self.find_parts_around_jet(self.fj_particles_combined_beforeCS, jet_combined_wta, self.jetR_list[0])
             jet_sub_pt = jets_combined[i].perp()
 
-            R_label = str(self.jetR_list[0]).replace('.', '')
+            
             hname = 'h_JetPt_ch_combined_R{}'.format(R_label)
             getattr(self, hname).Fill(jet_sub_pt)
             
@@ -537,10 +542,11 @@ class ProcessEmbedENC(process_base.ProcessBase):
         mb_jet1.reset_PtYPhiM(jet_axis.pt(), jet_axis.rapidity(), jet_axis.phi(), jet_axis.m())
         parts_in_mbcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb1, mb_jet1, mbcone_R)
         
-        # use 999 and -999 to distinguish from previous used labeling numbers
+        parts_in_jet = self.copy_parts(jet_constituents) # NB: make a copy so that the original jet constituents will not be modifed            # use 999 and -999 to distinguish from previous used labeling numbers
+
         parts_in_cone1 = fj.vectorPJ()
         # fill parts from jet
-        for part in jet_constituents: # everything in the jet cone is "signal"
+        for part in parts_in_jet: # everything in the jet cone is "signal"
             part.set_user_index(999)
             parts_in_cone1.append(part)
         # fill parts from mb cone 1
@@ -564,7 +570,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         mb_jet2 = fj.PseudoJet()
         mb_jet2.reset_PtYPhiM(jet_axis.pt(), jet_axis.rapidity(), jet_axis.phi(), jet_axis.m())
         
-        parts_in_mbcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb1, mb_jet1, mbcone_R)     
+        parts_in_mbcone1 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb1, mb_jet1, mbcone_R)
         parts_in_mbcone2 = self.find_parts_around_jet(self.fj_particles_combined_beforeCS_mb2, mb_jet2, mbcone_R)
 
         # label one perpcone as "sig" and the other as "bkg" so the perp1-perp2 and perp1(2)-perp1(2) correlations can be saved separately
@@ -827,7 +833,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         se_vtx = self.vz_array[se_iev]
         se_cent = self.centrality_array[se_iev]
 
-        me_mask = ( (np.abs(self.centrality_array - se_cent) < 1.0) & (np.abs(self.vz_array - se_vtx) < 1.0) & (~self.used_ev_mask) )
+        me_mask = ( (np.abs(self.centrality_array - se_cent) < 0.5) & (np.abs(self.vz_array - se_vtx) < 0.5) & (~self.used_ev_mask) )
         me_candidates = np.where(me_mask)[0]
         if (len(me_candidates) < 2):
             return None, None, None
