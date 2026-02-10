@@ -226,7 +226,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
                         h.GetYaxis().SetTitle(observable)
                         setattr(self, name, h)
                         getattr(self, hist_list_name).append(h)
-                        
+
                         # matched jet mbcone combined
                         name = 'h_matched_mbcone{}_{}_JetPt_ch_combined_R{}_{}'.format(coneR, observable, R_label, thrd_label)
                         print('Initialize histogram',name)
@@ -463,8 +463,10 @@ class ProcessEmbedENC(process_base.ProcessBase):
         R_label = str(self.jetR_list[0]).replace('.', '')
         
         # Main jet loop
-        for jet_combined in jets_combined:
-
+        for i in range(0, len(jets_combined)):
+            
+            jet_combined = jets_combined[i]
+            
             hname = 'h_JetPt_ch_combined_R{}'.format(R_label)
             getattr(self, hname).Fill(jet_combined.perp()-self.rho*jet_combined.area())
             
