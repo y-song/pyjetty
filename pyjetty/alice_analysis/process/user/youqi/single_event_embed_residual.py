@@ -317,8 +317,6 @@ class ProcessEmbed(process_base.ProcessBase):
             
         jetR_str = str(self.jetR_list[0]).replace('.', '')
         jet_def = getattr(self, "jet_def_R%s" % jetR_str)
-        jet_def_wta = getattr(self, "jet_def_wta_R%s" % jetR_str)
-        reclusterer_wta = fjcontrib.Recluster(jet_def_wta)
         track_selector_ch = getattr(self, "track_selector_ch")
         jet_selector_40 = getattr(self, "jet_selector_40_R%s" % jetR_str)
         area_cut = 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0]
@@ -339,22 +337,23 @@ class ProcessEmbed(process_base.ProcessBase):
             cs_combined_csub = fj.ClusterSequenceArea(track_selector_ch(self.fj_particles_combined_afterCS), jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
             jets_combined_preselect = fj.sorted_by_pt( jet_selector_40(cs_combined_csub.inclusive_jets()) )
             jets_combined_csub = []
-            jets_combined_csub_wta = []
             for jet_combined in jets_combined_preselect:
                 if (jet_combined.area() < area_cut):
                     continue
                 jets_combined_csub.append(jet_combined)
-                jet_combined_wta = reclusterer_wta.result(jet_combined)
-                jets_combined_csub_wta.append(jet_combined_wta)
                 
         if (len(jets_combined_asub) == 0 and len(jets_combined_csub) == 0):
             return
     
         self.analyze_pp_matched_jets(cs_combined_asub, jets_combined_asub, "asub_")
         self.analyze_pp_matched_jets(cs_combined_csub, jets_combined_csub, "csub_")
-        self.analyze_pp_matched_jets(cs_combined_csub, jets_combined_csub_wta, "csub_wta_")
 
     def analyze_pp_matched_jets(self, cluster_seq, jets_combined, hist_prefix=""):
+        
+        jetR_str = str(self.jetR_list[0]).replace('.', '')
+        jet_def_wta = getattr(self, "jet_def_wta_R%s" % jetR_str)
+        reclusterer_wta = fjcontrib.Recluster(jet_def_wta)
+        R_label = str(self.jetR_list[0]).replace('.', '')
         
         # match pp jets to subtracted combined jets
         jets_combined_matched_index = [-1 for x in range(0, len(jets_combined))]
@@ -371,8 +370,6 @@ class ProcessEmbed(process_base.ProcessBase):
                     ijet_combined_matched = ijet_combined
             if (len(jet_combined_matched) == 1): # pp jet has a unique combined jet match
                 jets_combined_matched_index[ijet_combined_matched] = ijet_pp
-
-        R_label = str(self.jetR_list[0]).replace('.', '')
         
         #-------------------------------------------------------------
         # loop over all selected combined jets
@@ -385,12 +382,12 @@ class ProcessEmbed(process_base.ProcessBase):
 
             if ("asub" in hist_prefix):
                 pt_combined_sub -= self.rho*jets_combined[ijet_combined].area()
-                
+
             if (ijet_pp != -1): # combined jet has a matched pp counterpart
 
                 pt_pp = self.jets_pp[ijet_pp].perp()
                 dr = self.jets_pp[ijet_pp].delta_R(jets_combined[ijet_combined])
-
+                
                 hname = 'h_{}JetPt_pp_matched_R{}'.format(hist_prefix, R_label)
                 getattr(self, hname).Fill(pt_pp)
 
@@ -408,6 +405,17 @@ class ProcessEmbed(process_base.ProcessBase):
 
                 hname = 'h_{}dr_JetPt_combined_sub_matched_R{}'.format(hist_prefix, R_label)
                 getattr(self, hname).Fill(pt_combined_sub, dr)
+
+                if ("csub" in hist_prefix):
+
+                    jet_combined_wta = reclusterer_wta.result(jets_combined[ijet_combined])
+                    dr_wta = self.jets_pp[ijet_pp].delta_R(jet_combined_wta)
+                    
+                    hname = 'h_{}wta_dr_JetPt_pp_matched_R{}'.format(hist_prefix, R_label)
+                    getattr(self, hname).Fill(pt_pp, dr_wta)
+
+                    hname = 'h_{}wta_dr_JetPt_combined_sub_matched_R{}'.format(hist_prefix, R_label)
+                    getattr(self, hname).Fill(pt_combined_sub, dr_wta)
 
             hname = 'h_{}JetPt_combined_sub_all_R{}'.format(hist_prefix, R_label)
             getattr(self, hname).Fill(pt_combined_sub)
