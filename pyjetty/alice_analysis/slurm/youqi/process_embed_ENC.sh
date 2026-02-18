@@ -37,6 +37,12 @@ else
   echo "Wrong command line arguments"
 fi
 
+if [ "$6" != "" ]; then
+  CONFIG=$6
+else
+  echo "Wrong command line arguments"
+fi
+
 # Define output path from relevant sub-path of input file
 OUTPUT_PREFIX="AnalysisResults/youqi/$JOB_ID"
 OUTPUT_DIR="/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/$OUTPUT_PREFIX/$FILE_ID"
@@ -44,4 +50,4 @@ echo "Output dir: $OUTPUT_DIR"
 mkdir -p $OUTPUT_DIR
 
 # Run python script via pipenv
-python $PROCESS_SCRIPT -c /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/PbPb/process_data.yaml -f $INPUT_DATA_FILE -o $OUTPUT_DIR -fmc $INPUT_MC_FILE
+python $PROCESS_SCRIPT -c $CONFIG -f $INPUT_DATA_FILE -o $OUTPUT_DIR -fmc $INPUT_MC_FILE

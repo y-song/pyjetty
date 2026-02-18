@@ -12,10 +12,12 @@
 
 FILE_PATH_DATA='/global/cfs/cdirs/alice/youqi/lists/files_LHC18qr_randomly_hadd50.txt'
 FILE_PATH_MC='/global/cfs/cdirs/alice/youqi/lists/files_LHC20g4_568_pthat28.txt'
-PROCESS_SCRIPT='/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/mixed_event_embed.py'
+PROCESS_SCRIPT='/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/mixed_event_embed_area_subtraction.py'
+CONFIG='/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/PbPb/process_data_R04.yaml'
 
 echo "Batch script: submit_mixed_event_embed.sh"
 echo "Process script: $PROCESS_SCRIPT"
+echo "Config: $CONFIG"
 echo "--------------------------------------------------------------------------
 Job info"
 echo "Job ID: $SLURM_ARRAY_JOB_ID"
@@ -43,7 +45,7 @@ do
   FILE_MC=$(sed -n "$FILE_ID"p $FILE_PATH_MC)
   echo "--------------------------------------------------------------------------
 File info"
-  srun /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/slurm/youqi/process_embed_ENC.sh $FILE_DATA $SLURM_ARRAY_JOB_ID $FILE_ID $FILE_MC $PROCESS_SCRIPT
+  srun /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/slurm/youqi/process_embed_ENC.sh $FILE_DATA $SLURM_ARRAY_JOB_ID $FILE_ID $FILE_MC $PROCESS_SCRIPT $CONFIG
 done
 
 # Move stdout to appropriate folder

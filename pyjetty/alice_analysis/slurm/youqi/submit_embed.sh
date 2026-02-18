@@ -6,21 +6,23 @@
 #SBATCH --job-name=youqi
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=5
 #SBATCH --time=10:00:00
-#SBATCH --array=1-99
+#SBATCH --array=1-599
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/slurm-%A_%a.out
-#SBATCH --mem=50G
+#SBATCH --mem=30G
 
 FILE_PATH_DATA='/global/cfs/cdirs/alice/youqi/lists/files_LHC18qr_randomly_hadd50.txt' #'/global/cfs/cdirs/alice/youqi/lists/files_LHC18qr.txt'
 FILE_PATH_MC='/global/cfs/cdirs/alice/youqi/lists/files_LHC20g4_568_pthat28.txt'
-PROCESS_SCRIPT='/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/embed_cs_subtraction.py'
+PROCESS_SCRIPT='/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/single_event_embed_residual.py'
+CONFIG='/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/PbPb/process_data_R04.yaml'
 
 echo "Batch script: submit_embed.sh"
 echo "Process script: $PROCESS_SCRIPT"
+echo "Config: $CONFIG"
 echo "--------------------------------------------------------------------------
 Job info"
 echo "Job ID: $SLURM_ARRAY_JOB_ID"
 NFILES=$(wc -l < $FILE_PATH_MC)
-FILES_PER_TASK=$(( $NFILES / 99 + 1 ))
+FILES_PER_TASK=$(( $NFILES / 599 + 1 ))
 echo "N MC files: ${NFILES}, Files per task: $FILES_PER_TASK"
 echo "--------------------------------------------------------------------------
 Task info"
@@ -43,7 +45,7 @@ do
   FILE_MC=$(sed -n "$FILE_ID"p $FILE_PATH_MC)
   echo "--------------------------------------------------------------------------
 File info"
-  srun /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/slurm/youqi/process_embed_ENC.sh $FILE_DATA $SLURM_ARRAY_JOB_ID $FILE_ID $FILE_MC $PROCESS_SCRIPT
+  srun /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/slurm/youqi/process_embed_ENC.sh $FILE_DATA $SLURM_ARRAY_JOB_ID $FILE_ID $FILE_MC $PROCESS_SCRIPT $CONFIG
 done
 
 # Move stdout to appropriate folder
