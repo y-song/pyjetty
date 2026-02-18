@@ -79,6 +79,8 @@ class ProcessEmbed(process_base.ProcessBase):
 
         self.nev = args.nev
 
+        self.jet_pt_thrd_combined = config["jet_pt_thrd_combined"]
+
         # particle level - ALICE tracking restriction
         self.max_eta_hadron = 0.9
 
@@ -244,8 +246,8 @@ class ProcessEmbed(process_base.ProcessBase):
             jet_selector = fj.SelectorPtMin(5) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
             setattr(self, "jet_selector_R%s" % jetR_str, jet_selector)
 
-            jet_selector_40 = fj.SelectorPtMin(40) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
-            setattr(self, "jet_selector_40_R%s" % jetR_str, jet_selector_40)
+            jet_selector_high_pt = fj.SelectorPtMin(self.jet_pt_thrd_combined) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
+            setattr(self, "jet_selector_high_pt_R%s" % jetR_str, jet_selector_high_pt)
 
     #---------------------------------------------------------------
     # Analyze events and pass information on to jet finding
@@ -318,24 +320,24 @@ class ProcessEmbed(process_base.ProcessBase):
         jetR_str = str(self.jetR_list[0]).replace('.', '')
         jet_def = getattr(self, "jet_def_R%s" % jetR_str)
         track_selector_ch = getattr(self, "track_selector_ch")
-        jet_selector_40 = getattr(self, "jet_selector_40_R%s" % jetR_str)
+        jet_selector_high_pt = getattr(self, "jet_selector_high_pt_R%s" % jetR_str)
         area_cut = 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0]
         cs_combined_asub = None
         cs_combined_csub = None
 
         if (True): # area subtracted jets
             cs_combined_asub = fj.ClusterSequenceArea(track_selector_ch(self.fj_particles_combined_beforeCS), jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
-            jets_combined_preselect = fj.sorted_by_pt( jet_selector_40(cs_combined_asub.inclusive_jets()) )
+            jets_combined_preselect = fj.sorted_by_pt( jet_selector_high_pt(cs_combined_asub.inclusive_jets()) )
             jets_combined_asub = []
             for jet_combined in jets_combined_preselect:
                 pt_sub = jet_combined.perp()-self.rho*jet_combined.area()
-                if (pt_sub < 40. or jet_combined.area() < area_cut):
+                if (pt_sub < self.jet_pt_thrd_combined or jet_combined.area() < area_cut):
                     continue
                 jets_combined_asub.append(jet_combined)
         
         if (True): # cs subtracted jets
             cs_combined_csub = fj.ClusterSequenceArea(track_selector_ch(self.fj_particles_combined_afterCS), jet_def, fj.AreaDefinition(fj.active_area_explicit_ghosts))
-            jets_combined_preselect = fj.sorted_by_pt( jet_selector_40(cs_combined_csub.inclusive_jets()) )
+            jets_combined_preselect = fj.sorted_by_pt( jet_selector_high_pt(cs_combined_csub.inclusive_jets()) )
             jets_combined_csub = []
             for jet_combined in jets_combined_preselect:
                 if (jet_combined.area() < area_cut):
@@ -408,8 +410,10 @@ class ProcessEmbed(process_base.ProcessBase):
 
                 if ("csub" in hist_prefix):
 
+                    jet_pp_wta = reclusterer_wta.result(self.jets_pp[ijet_pp])
+
                     jet_combined_wta = reclusterer_wta.result(jets_combined[ijet_combined])
-                    dr_wta = self.jets_pp[ijet_pp].delta_R(jet_combined_wta)
+                    dr_wta = jet_pp_wta.delta_R(jet_combined_wta)
                     
                     hname = 'h_{}wta_dr_JetPt_pp_matched_R{}'.format(hist_prefix, R_label)
                     getattr(self, hname).Fill(pt_pp, dr_wta)
