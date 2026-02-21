@@ -38,8 +38,8 @@ void SetStyle(Bool_t graypalette = true)
     gStyle->SetFuncColor(kGreen);
     gStyle->SetLineWidth(1);
     gStyle->SetLabelSize(0.02, "xyz");
-    gStyle->SetLabelOffset(0.01, "y"); //(0.005,"y");
-    gStyle->SetLabelOffset(0.01, "x"); //(0.005,"x");
+    gStyle->SetLabelOffset(0.01, "y");
+    gStyle->SetLabelOffset(0.01, "x");
     gStyle->SetLabelColor(kBlack, "xyz");
     gStyle->SetTitleSize(0.025, "xyz");
     gStyle->SetTitleOffset(1.25, "y");
@@ -52,19 +52,23 @@ void SetStyle(Bool_t graypalette = true)
     gStyle->SetLegendFont(42);
 }
 
-void FormatHist(TLegend *l, TH1 *hist, TString text)
+void FormatHist(TLegend *l, TH1 *hist, TString text, int color)
 {
-    hist->SetMarkerSize(0.5);
-    hist->GetYaxis()->SetTitleOffset(1.05);
-    hist->GetYaxis()->SetTitleSize(0.03); //(0.032);
-    hist->GetYaxis()->SetLabelSize(0.03); //(0.032);
+    hist->SetMarkerSize(0.8);
+    hist->SetMarkerStyle(8);
+    hist->SetMarkerColor(color);
+    hist->SetLineColor(color);
+    hist->GetYaxis()->SetTitle("Probability density");
+    hist->GetYaxis()->SetTitleOffset(1.2);
+    hist->GetYaxis()->SetTitleSize(0.035);
+    hist->GetYaxis()->SetLabelSize(0.035);
     hist->GetYaxis()->SetLabelFont(42);
     hist->GetXaxis()->SetLabelFont(42);
     hist->GetYaxis()->SetTitleFont(42);
     hist->GetXaxis()->SetTitleFont(42);
-    hist->GetXaxis()->SetTitleOffset(1.0);
-    hist->GetXaxis()->SetTitleSize(0.03); //(0.032);
-    hist->GetXaxis()->SetLabelSize(0.03); //(0.032);
+    hist->GetXaxis()->SetTitleOffset(1.1);
+    hist->GetXaxis()->SetTitleSize(0.035);
+    hist->GetXaxis()->SetLabelSize(0.035);
 
     l->AddEntry(hist, text, "pl");
 
@@ -73,15 +77,11 @@ void FormatHist(TLegend *l, TH1 *hist, TString text)
 
 void addLegendInfo(TLegend *l, string pt_min, string pt_max, string jetR)
 {
-    l->SetTextSize(0.03);
-    // l->AddEntry("NULL", "PYTHIA jets + thermal, no det. effects", "h");
+    l->SetTextSize(0.032);
     l->AddEntry("NULL", "PYTHIA8 jets + ALICE PbPb 0#minus10%", "h");
-    // l->AddEntry("NULL", "ALICE PbPb 0#minus10%, #sqrt{#it{s}_{NN}} = 5.02 TeV", "h");
     l->AddEntry("NULL", "#sqrt{#it{s}} = 5.02 TeV, #hat{#it{p}}_{T} > 28 GeV", "h");
     l->AddEntry("NULL", ("charged jets, anti-#it{k}_{T}, #it{R} =" + jetR).c_str(), "h");
     l->AddEntry("NULL", "", "h");
-    // l->AddEntry("NULL", "#it{p}_{T}^{combined, sub.} > 40 GeV", "h");
-    // l->AddEntry("NULL", (pt_min + " < #it{p}_{T}^{combined, sub.} < " + pt_max + " GeV").c_str(), "h");
     l->SetBorderSize(0);
     l->SetFillStyle(0); // turn legend transparent
 }
@@ -92,15 +92,13 @@ void plot_dpt()
 
     const string jetR = "02";
     const string jetRPoint = "0.2";
-    const string jobID = "46862732";
-    const string subtraction = "CS";
+    const string jobID = "48875062";
+    const string subtraction = "asub";
 
     TFile *f = new TFile(("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/" + jobID + "/AnalysisResultsFinal.root").c_str(), "READ");
-    // TH2D *h_dpt_jetpt_combined_sub_matched = (TH2D *)f->Get(("h_dpt_JetPt_combined_sub_matched_R" + jetR).c_str());
-    // TFile *f = new TFile("AnalysisResults.root", "READ");
-    TH2D *h = (TH2D *)f->Get(("h_dpt_JetPt_combined_sub_matched_R" + jetR).c_str());
-    TH2D *h_all = (TH2D *)f->Get(("h_dpt_JetPt_combined_sub_all_R" + jetR).c_str());
-    TH2D *h_pp = (TH2D *)f->Get(("h_dpt_JetPt_pp_matched_R" + jetR).c_str());
+    TH2D *h = (TH2D *)f->Get(("h_" + subtraction + "_dpt_JetPt_combined_sub_matched_R" + jetR).c_str());
+    TH2D *h_all = (TH2D *)f->Get(("h_" + subtraction + "_dpt_JetPt_combined_sub_all_R" + jetR).c_str());
+    TH2D *h_pp = (TH2D *)f->Get(("h_" + subtraction + "_dpt_JetPt_pp_matched_R" + jetR).c_str());
 
     TH2D *h1 = (TH2D *)h->Clone("h1");
     TH2D *h2 = (TH2D *)h->Clone("h2");
@@ -150,16 +148,14 @@ void plot_dpt()
     c1->SetCanvasSize(700, 500);
     c1->cd();
     
-    TLegend *leg1 = new TLegend(0.55, 0.6, 0.8562155, 0.8885185, "");
+    TLegend *leg1 = new TLegend(0.16, 0.56, 0.4662155, 0.88, "");
     addLegendInfo(leg1, "", "", jetRPoint);
-    h1_proj->SetLineColor(kGreen + 2);
-    h2_proj->SetLineColor(kRed);
     h1_proj->GetXaxis()->SetTitle("#deltap_{T} = p_{T}^{combined sub} #minus p_{T}^{pp det} [GeV]");
-    // h1_proj->GetYaxis()->SetRangeUser(0, 0.12);
+    h1_proj->GetYaxis()->SetRangeUser(0, 0.12);
     h1_proj->SetTitle(("Matched jets, " + subtraction).c_str());
-    FormatHist(leg1, h1_proj, "40 < #it{p}_{T}^{combined sub} < 60 GeV");
-    FormatHist(leg1, h2_proj, "60 < #it{p}_{T}^{combined sub} < 80 GeV");
-    FormatHist(leg1, h3_proj, "80 < #it{p}_{T}^{combined sub} < 100 GeV");
+    FormatHist(leg1, h1_proj, "40 < #it{p}_{T}^{combined sub} < 60 GeV", kGreen+2);
+    FormatHist(leg1, h2_proj, "60 < #it{p}_{T}^{combined sub} < 80 GeV", kRed+2);
+    FormatHist(leg1, h3_proj, "80 < #it{p}_{T}^{combined sub} < 100 GeV", kBlue+2);
 
     h1_proj->Draw();
     h2_proj->Draw("same");
@@ -173,16 +169,14 @@ void plot_dpt()
     c2->SetCanvasSize(700, 500);
     c2->cd();
     
-    TLegend *leg2 = new TLegend(0.16, 0.6, 0.4662155, 0.8885185, "");
+    TLegend *leg2 = new TLegend(0.16, 0.56, 0.4662155, 0.88, "");
     addLegendInfo(leg2, "", "", jetRPoint);
-    h4_proj->SetLineColor(kGreen + 2);
-    h5_proj->SetLineColor(kRed);
     h4_proj->GetXaxis()->SetTitle("#deltap_{T} = p_{T}^{combined sub} #minus p_{T}^{pp det} [GeV]");
-    h4_proj->GetYaxis()->SetRangeUser(0, 0.1);
+    h4_proj->GetYaxis()->SetRangeUser(0, 0.12);
     h4_proj->SetTitle(("All jets, " + subtraction).c_str());
-    FormatHist(leg2, h4_proj, "40 < #it{p}_{T}^{combined sub} < 60 GeV");
-    FormatHist(leg2, h5_proj, "60 < #it{p}_{T}^{combined sub} < 80 GeV");
-    FormatHist(leg2, h6_proj, "80 < #it{p}_{T}^{combined sub} < 100 GeV");
+    FormatHist(leg2, h4_proj, "40 < #it{p}_{T}^{combined sub} < 60 GeV", kGreen+2);
+    FormatHist(leg2, h5_proj, "60 < #it{p}_{T}^{combined sub} < 80 GeV", kRed+2);
+    FormatHist(leg2, h6_proj, "80 < #it{p}_{T}^{combined sub} < 100 GeV", kBlue+2);
 
     h4_proj->Draw();
     h5_proj->Draw("same");
@@ -196,16 +190,15 @@ void plot_dpt()
     c3->SetCanvasSize(700, 500);
     c3->cd();
     
-    TLegend *leg3 = new TLegend(0.55, 0.6, 0.8562155, 0.8885185, "");
+    TLegend *leg3 = new TLegend(0.16, 0.56, 0.4662155, 0.88, "");
     addLegendInfo(leg3, "", "", jetRPoint);
-    h7_proj->SetLineColor(kGreen + 2);
-    h8_proj->SetLineColor(kRed);
+
     h7_proj->GetXaxis()->SetTitle("#deltap_{T} = p_{T}^{combined sub} #minus p_{T}^{pp det} [GeV]");
-    // h7_proj->GetYaxis()->SetRangeUser(0, 0.12);
+    h7_proj->GetYaxis()->SetRangeUser(0, 0.12);
     h7_proj->SetTitle(("Matched jets, " + subtraction).c_str());
-    FormatHist(leg3, h7_proj, "40 < #it{p}_{T}^{pp det} < 60 GeV");
-    FormatHist(leg3, h8_proj, "60 < #it{p}_{T}^{pp det} < 80 GeV");
-    FormatHist(leg3, h9_proj, "80 < #it{p}_{T}^{pp det} < 100 GeV");
+    FormatHist(leg3, h7_proj, "40 < #it{p}_{T}^{pp det} < 60 GeV", kGreen+2);
+    FormatHist(leg3, h8_proj, "60 < #it{p}_{T}^{pp det} < 80 GeV", kRed+2);
+    FormatHist(leg3, h9_proj, "80 < #it{p}_{T}^{pp det} < 100 GeV", kBlue+2);
 
     h7_proj->Draw();
     h8_proj->Draw("same");
