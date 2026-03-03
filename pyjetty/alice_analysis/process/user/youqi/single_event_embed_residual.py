@@ -145,6 +145,11 @@ class ProcessEmbed(process_base.ProcessBase):
             hist_list_name = "hist_list_R%s" % str(jetR).replace('.', '')
             setattr(self, hist_list_name, [])
 
+            name = 'hNevents_scaled'
+            h = ROOT.TH1D(name, name, 2, -0.5, 1.5)
+            setattr(self, name, h)
+            getattr(self, hist_list_name).append(h)
+            
             R_label = str(jetR).replace('.', '')
 
             for hist_prefix in ['asub_', 'csub_', 'csub_wta_']:
@@ -308,6 +313,7 @@ class ProcessEmbed(process_base.ProcessBase):
             self.rho = self.constituent_subtractor.bge_rho.rho()
 
             self.hNevents.Fill(0)
+            getattr(self, 'hNevents_scaled').Fill(0)
             self.analyze_jets()
 
             iev_mc += 1
@@ -321,7 +327,7 @@ class ProcessEmbed(process_base.ProcessBase):
         jet_def = getattr(self, "jet_def_R%s" % jetR_str)
         track_selector_ch = getattr(self, "track_selector_ch")
         jet_selector_high_pt = getattr(self, "jet_selector_high_pt_R%s" % jetR_str)
-        area_cut = 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0]
+        area_cut = 0 # 0.6*np.pi*self.jetR_list[0]*self.jetR_list[0]
         cs_combined_asub = None
         cs_combined_csub = None
 
