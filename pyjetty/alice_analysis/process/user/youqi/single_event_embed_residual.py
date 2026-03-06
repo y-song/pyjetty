@@ -175,6 +175,33 @@ class ProcessEmbed(process_base.ProcessBase):
                 setattr(self, name, h)
                 getattr(self, hist_list_name).append(h)
 
+                name = 'h_{}area_JetPt_pp_matched_R{}'.format(hist_prefix, R_label)
+                pt_bins = linbins(0,200,200)
+                area_bins = linbins(0,1,100)
+                h = ROOT.TH2D(name, name, 200, pt_bins, 100, area_bins)
+                h.GetXaxis().SetTitle('p_{T, pp det}')
+                h.GetYaxis().SetTitle('Area_{combined sub}')
+                setattr(self, name, h)
+                getattr(self, hist_list_name).append(h)
+
+                name = 'h_{}area_JetPt_combined_sub_matched_R{}'.format(hist_prefix, R_label)
+                pt_bins = linbins(0,200,200)
+                area_bins = linbins(0,1,100)
+                h = ROOT.TH2D(name, name, 200, pt_bins, 100, area_bins)
+                h.GetXaxis().SetTitle('p_{T, combined sub}')
+                h.GetYaxis().SetTitle('Area_{combined sub}')
+                setattr(self, name, h)
+                getattr(self, hist_list_name).append(h)
+
+                name = 'h_{}area_JetPt_combined_sub_all_R{}'.format(hist_prefix, R_label)
+                pt_bins = linbins(0,200,200)
+                area_bins = linbins(0,1,100)
+                h = ROOT.TH2D(name, name, 200, pt_bins, 100, area_bins)
+                h.GetXaxis().SetTitle('p_{T, combined sub}')
+                h.GetYaxis().SetTitle('Area_{combined sub}')
+                setattr(self, name, h)
+                getattr(self, hist_list_name).append(h)
+
                 name = 'h_{}dpt_JetPt_pp_matched_R{}'.format(hist_prefix, R_label)
                 pt_bins = linbins(0,200,200)
                 dpt_bins = linbins(-100, 100, 200)
@@ -183,7 +210,7 @@ class ProcessEmbed(process_base.ProcessBase):
                 h.GetYaxis().SetTitle('#Deltap_{T} = p_{T, combined sub} - p_{T, pp det}')
                 setattr(self, name, h)
                 getattr(self, hist_list_name).append(h)
-
+                
                 name = 'h_{}dpt_JetPt_combined_sub_matched_R{}'.format(hist_prefix, R_label)
                 pt_bins = linbins(0,200,200)
                 dpt_bins = linbins(-100, 100, 200)
@@ -193,6 +220,15 @@ class ProcessEmbed(process_base.ProcessBase):
                 setattr(self, name, h)
                 getattr(self, hist_list_name).append(h)
 
+                name = 'h_{}dpt_JetPt_combined_sub_all_R{}'.format(hist_prefix, R_label)
+                pt_bins = linbins(0,200,200)
+                dpt_bins = linbins(-100, 100, 200)
+                h = ROOT.TH2D(name, name, 200, pt_bins, 200, dpt_bins)
+                h.GetXaxis().SetTitle('p_{T, combined sub}')
+                h.GetYaxis().SetTitle('#Deltap_{T} = p_{T, combined sub} - p_{T, pp det}')
+                setattr(self, name, h)
+                getattr(self, hist_list_name).append(h)
+                
                 name = 'h_{}dr_JetPt_pp_matched_R{}'.format(hist_prefix, R_label)
                 pt_bins = linbins(0,200,200)
                 dr_bins = linbins(-0.05, 0.8, 170)
@@ -208,15 +244,6 @@ class ProcessEmbed(process_base.ProcessBase):
                 h = ROOT.TH2D(name, name, 200, pt_bins, 170, dr_bins)
                 h.GetXaxis().SetTitle('p_{T, pp det}')
                 h.GetYaxis().SetTitle('#DeltaR(combined sub#minuspp det)')
-                setattr(self, name, h)
-                getattr(self, hist_list_name).append(h)
-
-                name = 'h_{}dpt_JetPt_combined_sub_all_R{}'.format(hist_prefix, R_label)
-                pt_bins = linbins(0,200,200)
-                dpt_bins = linbins(-100, 100, 200)
-                h = ROOT.TH2D(name, name, 200, pt_bins, 200, dpt_bins)
-                h.GetXaxis().SetTitle('p_{T, combined sub}')
-                h.GetYaxis().SetTitle('#Deltap_{T} = p_{T, combined sub} - p_{T, pp det}')
                 setattr(self, name, h)
                 getattr(self, hist_list_name).append(h)
             
@@ -387,6 +414,7 @@ class ProcessEmbed(process_base.ProcessBase):
             ijet_pp = jets_combined_matched_index[ijet_combined]
             pt_pp = 0.
             pt_combined_sub = jets_combined[ijet_combined].perp()
+            area_combined_sub = jets_combined[ijet_combined].area()
 
             if ("asub" in hist_prefix):
                 pt_combined_sub -= self.rho*jets_combined[ijet_combined].area()
@@ -414,6 +442,12 @@ class ProcessEmbed(process_base.ProcessBase):
                 hname = 'h_{}dr_JetPt_combined_sub_matched_R{}'.format(hist_prefix, R_label)
                 getattr(self, hname).Fill(pt_combined_sub, dr)
 
+                hname = 'h_{}area_JetPt_pp_matched_R{}'.format(hist_prefix, R_label)
+                getattr(self, hname).Fill(pt_pp, area_combined_sub)
+
+                hname = 'h_{}area_JetPt_combined_sub_matched_R{}'.format(hist_prefix, R_label)
+                getattr(self, hname).Fill(pt_combined_sub, area_combined_sub)
+
                 if ("csub" in hist_prefix):
 
                     jet_pp_wta = reclusterer_wta.result(self.jets_pp[ijet_pp])
@@ -432,6 +466,9 @@ class ProcessEmbed(process_base.ProcessBase):
 
             hname = 'h_{}dpt_JetPt_combined_sub_all_R{}'.format(hist_prefix, R_label)
             getattr(self, hname).Fill(pt_combined_sub, pt_combined_sub-pt_pp)
+
+            hname = 'h_{}area_JetPt_combined_sub_all_R{}'.format(hist_prefix, R_label)
+            getattr(self, hname).Fill(pt_combined_sub, area_combined_sub)
     
     #---------------------------------------------------------------
     # Compare two jets and store matching candidates in user_info
