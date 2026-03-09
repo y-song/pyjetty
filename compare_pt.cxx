@@ -90,16 +90,25 @@ void compare_pt()
 {
     SetStyle();
 
-    const string jetR = "02";
-    const string jetRPoint = "0.2";
-    const string jobID = "48875062";
+    const string jetR = "04";
+    const string jetRPoint = "0.4";
+    const string jobID = "49698333";
     const string option = "single_event_embed_asub_vs_csub";
+    const double area_cut = 0.6*M_PI*std::stod(jetRPoint)*std::stod(jetRPoint);
 
     TFile *f = new TFile(("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/" + jobID + "/AnalysisResultsFinal.root").c_str(), "READ");
-    TH2D *h1 = (TH2D *)f->Get(("h_asub_JetPt_combined_sub_all_R" + jetR).c_str());
-    TH2D *h2 = (TH2D *)f->Get(("h_csub_JetPt_combined_sub_all_R" + jetR).c_str());
+    TH2D *h1 = (TH2D *)f->Get(("h_asub_area_JetPt_combined_sub_all_R" + jetR).c_str());
+    TH2D *h2 = (TH2D *)f->Get(("h_csub_area_JetPt_combined_sub_all_R" + jetR).c_str());
+    TH2D *h1_clone = (TH2D *) h1->Clone("h1_clone");
+    TH2D *h2_clone = (TH2D *) h2->Clone("h2_clone");
+    h1_clone->GetYaxis()->SetRangeUser(area_cut, 1.0);
+    h2_clone->GetYaxis()->SetRangeUser(area_cut, 1.0);
+    TH1D *h1_proj = h1_clone->ProjectionX();
+    TH1D *h2_proj = h2_clone->ProjectionX();
+    // TH2D *h1 = (TH2D *)f->Get(("h_asub_JetPt_combined_sub_all_R" + jetR).c_str());
+    // TH2D *h2 = (TH2D *)f->Get(("h_csub_JetPt_combined_sub_all_R" + jetR).c_str());
 
-    cout << "Integral: " << h1->Integral() << ", " << h2->Integral() << endl;
+    cout << "Integral: " << h1_proj->Integral() << ", " << h2_proj->Integral() << endl;
 
     TCanvas *c1 = new TCanvas();
     c1->SetCanvasSize(700, 500);
@@ -108,18 +117,18 @@ void compare_pt()
     
     TLegend *leg1 = new TLegend(0.55, 0.6, 0.8562155, 0.8885185, "");
     addLegendInfo(leg1, "", "", jetRPoint);
-    h1->SetLineColor(kGreen + 2);
-    h2->SetLineColor(kRed);
-    h1->GetXaxis()->SetTitle("p_{T}^{combined jet, sub} [GeV]");
-    h1->GetXaxis()->SetRangeUser(40, 200);
-    h1->GetYaxis()->SetTitle("");
-    // h1->GetYaxis()->SetRangeUser(1e-5, 0.3);
-    h1->SetTitle(option.c_str());
-    FormatHist(leg1, h1, "#rhoA subtract");
-    FormatHist(leg1, h2, "constituent subtract");
+    h1_proj->SetLineColor(kGreen + 2);
+    h2_proj->SetLineColor(kRed);
+    h1_proj->GetXaxis()->SetTitle("p_{T}^{combined jet, sub} [GeV]");
+    h1_proj->GetXaxis()->SetRangeUser(40, 200);
+    h1_proj->GetYaxis()->SetTitle("");
+    // h1_proj->GetYaxis()->SetRangeUser(1e-5, 0.3);
+    h1_proj->SetTitle(option.c_str());
+    FormatHist(leg1, h1_proj, "#rhoA subtract");
+    FormatHist(leg1, h2_proj, "constituent subtract");
 
-    h1->Draw();
-    h2->Draw("same");
+    h1_proj->Draw();
+    h2_proj->Draw("same");
     leg1->Draw("same");
 
     c1->SaveAs(("pt_R" + jetR + "_" + option + "_" + jobID + ".pdf").c_str());
