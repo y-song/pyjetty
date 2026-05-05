@@ -77,7 +77,7 @@ void addLegendInfo(TLegend *l, string pt_min, string pt_max, string jetR)
     // l->AddEntry("NULL", "PYTHIA jets + thermal, no det. effects", "h");
     l->AddEntry("NULL", "PYTHIA8 jets + ALICE PbPb 0#minus10%", "h");
     // l->AddEntry("NULL", "ALICE PbPb 0#minus10%, #sqrt{#it{s}_{NN}} = 5.02 TeV", "h");
-    l->AddEntry("NULL", "#sqrt{#it{s}} = 5.02 TeV, #hat{#it{p}}_{T} > 28 GeV", "h");
+    l->AddEntry("NULL", "#sqrt{#it{s}} = 5.02 TeV, #hat{#it{p}}_{T} > 12 GeV", "h");
     l->AddEntry("NULL", ("charged jets, anti-#it{k}_{T}, #it{R} =" + jetR).c_str(), "h");
     l->AddEntry("NULL", "", "h");
     // l->AddEntry("NULL", "#it{p}_{T}^{combined, sub.} > 40 GeV", "h");
@@ -92,7 +92,7 @@ void compare_pt()
 
     const string jetR = "04";
     const string jetRPoint = "0.4";
-    const string jobID = "49698333";
+    const string jobID = "52300263";
     const string option = "single_event_embed_asub_vs_csub";
     const double area_cut = 0.6*M_PI*std::stod(jetRPoint)*std::stod(jetRPoint);
 
@@ -105,10 +105,8 @@ void compare_pt()
     h2_clone->GetYaxis()->SetRangeUser(area_cut, 1.0);
     TH1D *h1_proj = h1_clone->ProjectionX();
     TH1D *h2_proj = h2_clone->ProjectionX();
-    // TH2D *h1 = (TH2D *)f->Get(("h_asub_JetPt_combined_sub_all_R" + jetR).c_str());
-    // TH2D *h2 = (TH2D *)f->Get(("h_csub_JetPt_combined_sub_all_R" + jetR).c_str());
-
-    cout << "Integral: " << h1_proj->Integral() << ", " << h2_proj->Integral() << endl;
+    h1_proj->Rebin(2);
+    h2_proj->Rebin(2);
 
     TCanvas *c1 = new TCanvas();
     c1->SetCanvasSize(700, 500);
@@ -121,11 +119,14 @@ void compare_pt()
     h2_proj->SetLineColor(kRed);
     h1_proj->GetXaxis()->SetTitle("p_{T}^{combined jet, sub} [GeV]");
     h1_proj->GetXaxis()->SetRangeUser(40, 200);
+    h2_proj->GetXaxis()->SetRangeUser(40, 200);
     h1_proj->GetYaxis()->SetTitle("");
     // h1_proj->GetYaxis()->SetRangeUser(1e-5, 0.3);
     h1_proj->SetTitle(option.c_str());
     FormatHist(leg1, h1_proj, "#rhoA subtract");
     FormatHist(leg1, h2_proj, "constituent subtract");
+    
+    cout << "Integral: " << h1_proj->Integral() << ", " << h2_proj->Integral() << endl;
 
     h1_proj->Draw();
     h2_proj->Draw("same");
