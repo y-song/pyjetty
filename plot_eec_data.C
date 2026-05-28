@@ -118,7 +118,7 @@ void addLegendInfo(TLegend *l, TString ptbin)
 {
     l->SetTextSize(0.045);
     l->AddEntry("NULL", "ALICE Pb#minusPb #sqrt{#it{s}_{NN}} = 5.02 TeV, 0#minus10%", "h");
-    l->AddEntry("NULL", "charged jets, anti-#it{k}_{T}, #it{R} = 0.4", "h");
+    l->AddEntry("NULL", "charged jets, anti-#it{k}_{T}, #it{R} = 0.2", "h");
     l->AddEntry("NULL", ptbin, "h");
     l->SetTextSize(0.037);
     l->SetBorderSize(0);
@@ -154,19 +154,19 @@ void plot_eec_data(string pt_min, string pt_max)
     Double_t colors[16] = {kRed, kGreen + 2, kBlue, kBlack, kGreen + 1, kBlue + 1, kRed + 2, kGreen + 2, kBlue + 2, kRed + 3, kGreen + 3, kBlue + 3, kOrange + 1, kViolet + 1, kYellow + 1, kCyan + 1};
 
     // string one("");
-    const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
-    // const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/44898661/AnalysisResultsFinal.root";
+    // const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
+    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/45207364/AnalysisResultsFinal.root";
     TFile *f = new TFile(TString(infile), "READ");
-    std::string add_name = "_2perpcone_test";//PbPb_embed_perpcone";
+    std::string add_name = "_2perpcone";//PbPb_embed_perpcone";
     std::cout << "output name will be " << add_name << std::endl;
     std::string outdir = "";
     std::string outfile = outdir + "AnalysisResultsOut" + add_name + ".root";
     TFile *f_out = new TFile(outfile.c_str(), "RECREATE");
 
     const int numjetaxes = 1;
-    const string jetR = "04";
+    const string jetR = "02";
     const std::string jetaxis_names[] = {"data"};
-    const std::string hist_names[] = {"jet_ENC_RL2_JetPt_R04_trk10", "perpcone0.4_jet_ENC_RL2_sb_JetPt_R04_trk10", "perpcone0.4_jet_ENC_RL2_bb_JetPt_R04_trk10", "2perpcone0.4_jet_ENC_RL2_sb_JetPt_R04_trk10"};
+    const std::string hist_names[] = {"jet_ENC_RL2_JetPt_R02_trk10", "perpcone0.2_jet_ENC_RL2_sb_JetPt_R02_trk10", "perpcone0.2_jet_ENC_RL2_bb_JetPt_R02_trk10", "2perpcone0.2_jet_ENC_RL2_sb_JetPt_R02_trk10"};
     std::cout << "checkpoint1" << std::endl;
 
     std::cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
@@ -203,7 +203,7 @@ void plot_eec_data(string pt_min, string pt_max)
 
     // define pt related variables
     // TString ptbin = pt_min + " < #it{p}_{T, jet}^{det} < " + pt_max + " GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5"; //;TString::Format("%s < #it{p}_{T}^{ch. jet} < %s GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
-    TString ptbin = pt_min + " < #it{p}_{T, jet}^{det} < " + pt_max + " GeV/#it{c}, #it{A}_{jet} < 0.6#it{#piR}^{2}"; //;TString::Format("%s < #it{p}_{T}^{ch. jet} < %s GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
+    TString ptbin = pt_min + " < #it{p}_{T, jet}^{det} < " + pt_max + " GeV/#it{c}, #it{A}_{jet} > 0.6#it{#piR}^{2}"; //;TString::Format("%s < #it{p}_{T}^{ch. jet} < %s GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
     std::string pdf_outdir = "";
 
     //-------------------------------------------------//
@@ -366,7 +366,7 @@ void plot_eec_data(string pt_min, string pt_max)
     int markercolor7 = kBlack; // inclusive
     int markerstyle7 = 29;
 
-    TH1 *h_JetPt = ((TH2 *)f->Get("h_Nconst_JetPt_R04_trk10"))->ProjectionX();
+    TH1 *h_JetPt = ((TH2 *)f->Get("h_Nconst_JetPt_R02_trk10"))->ProjectionX();
     std::cout << "Number of jets from pT bins " << stof(pt_min) + 1 << "-" << stof(pt_max)<< ": ";
     int njets = h_JetPt->Integral((int)(stof(pt_min) + 1), (int)(stof(pt_max)));
     std::cout << njets << endl;
@@ -406,13 +406,13 @@ void plot_eec_data(string pt_min, string pt_max)
         // std::cout << "the max is " << maxy << endl;
         // maxy *= 1.2;
         // h1[iobs]->SetMaximum(maxy);
-        h1[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
-        h2[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
-        h3[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
-        // h4[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
-        // h5[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
-        // h6[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
-        htotal[iobs]->GetXaxis()->SetRangeUser(0.005, 0.4);
+        h1[iobs]->GetXaxis()->SetRangeUser(0.01, 0.2);
+        h2[iobs]->GetXaxis()->SetRangeUser(0.01, 0.2);
+        h3[iobs]->GetXaxis()->SetRangeUser(0.01, 0.2);
+        // h4[iobs]->GetXaxis()->SetRangeUser(0.01, 0.2);
+        // h5[iobs]->GetXaxis()->SetRangeUser(0.01, 0.2);
+        // h6[iobs]->GetXaxis()->SetRangeUser(0.01, 0.2);
+        htotal[iobs]->GetXaxis()->SetRangeUser(0.01, 0.2);
         h1[iobs]->GetYaxis()->SetRangeUser(0, 10);
         h1[iobs]->GetXaxis()->SetTitle("#it{R}_{L}");
         h1[iobs]->GetYaxis()->SetTitle("EEC");

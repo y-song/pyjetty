@@ -90,9 +90,9 @@ void plot_pt()
 {
     SetStyle();
 
-    const string jetR = "02";
-    const string jetRPoint = "0.2";
-    const string jobID = "48875062";
+    const string jetR = "04";
+    const string jetRPoint = "0.4";
+    const string jobID = "48698333";
     const string option = "single_event_embed_cs";
 
     TFile *f = new TFile(("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/" + jobID + "/AnalysisResultsFinal.root").c_str(), "READ");

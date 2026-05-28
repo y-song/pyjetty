@@ -450,7 +450,8 @@ class ProcessIO(common_base.CommonBase):
 
     # print('is_ENC on?',self.is_ENC)
     # print('is_det on?',self.is_det_level)
-    # print('debug1\n',self.track_df)
+    # print('debug1\n', self.track_df[self.track_df.iev==1])
+    # print('duplicate?', self.track_df[self.track_df.iev==1].duplicated().any())
     if group_by_evid:
       print("Transform the track dataframe into a series object of fastjet particles per event...")
 

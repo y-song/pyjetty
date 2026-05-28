@@ -311,7 +311,7 @@ class ProcessEmbed(process_base.ProcessBase):
                 continue
             
             # if leading jet pT is over the thrd for the given pTHat bin, go to next MC
-            if (len(self.jets_pp) > 0 and self.jets_pp[0].perp() > jet_pt_thrd):
+            if ( (len(self.jets_pp) > 0) and (self.jets_pp[0].perp() > jet_pt_thrd) ):
                 print("skip due to high weight")
                 iev_mc += 1
                 continue
@@ -335,7 +335,10 @@ class ProcessEmbed(process_base.ProcessBase):
                     self.parts_pythia_ch_jet.push_back(p)
             [self.fj_particles_combined_beforeCS.push_back(p) for p in self.parts_pythia_ch_jet]
 
-            self.constituent_subtractor = CEventSubtractor(max_distance=self.max_distance, alpha=self.alpha, max_eta=self.max_eta, bge_rho_grid_size=self.bge_rho_grid_size, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area, distance_type=fjcontrib.ConstituentSubtractor.deltaR)
+            if (self.do_constituent_subtraction):
+                self.constituent_subtractor = CEventSubtractor(max_distance=self.max_distance, alpha=self.alpha, max_eta=self.max_eta, bge_rho_grid_size=self.bge_rho_grid_size, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area, distance_type=fjcontrib.ConstituentSubtractor.deltaR)
+            elif (self.do_ics):
+                self.constituent_subtractor = ICEventSubtractor(max_distances=fjcontrib.vectorDouble(self.max_distances), alphas=fjcontrib.vectorDouble(self.alphas), max_eta=self.max_eta, jet_median_selector_R=self.jet_median_selector_R, max_pt_correct=self.max_pt_correct, ghost_area=self.ghost_area)
             self.fj_particles_combined_afterCS = self.constituent_subtractor.process_event(self.fj_particles_combined_beforeCS)
             self.rho = self.constituent_subtractor.bge_rho.rho()
 

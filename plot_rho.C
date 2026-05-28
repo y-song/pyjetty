@@ -162,11 +162,11 @@ void plot_rho(string pt_min, string pt_max)
     gStyle->SetOptStat(0);
     SetStyle();
     
-    const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
-    // const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/48184857/AnalysisResultsFinal.root";
+    // const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
+    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/48695459/AnalysisResultsFinal.root";
     const string jetR = "02";
     const string jetRPoint = "0.2";
-    std::string add_name = "_test";
+    std::string add_name = "_48695459";
     std::string outfile = "rho_embed_PbPb_R" + jetR + "_" + pt_min + "_" + pt_max + add_name + ".root";
 
     std::cout << "pt min: " << pt_min << ", pt max: " << pt_max << endl;
@@ -177,33 +177,41 @@ void plot_rho(string pt_min, string pt_max)
 
     const int numjetaxes = 2;
     const std::string jetaxis_names[] = {"jet", "matched_jet"};
-    const std::string hist_names[] = {"", "matched_", "mbcone"+jetRPoint+"_", "matched_mbcone"+jetRPoint+"_"};
+    const std::string hist_names[] = {"", "matched_", "mbcone"+jetRPoint+"_", "matched_mbcone"+jetRPoint+"_"};//, "perpcone"+jetRPoint+"_", "matched_perpcone"+jetRPoint+"_"};
 
     for (int iobs = 0; iobs < numjetaxes; iobs++)
     {
         const std::string h1_name = "h_" + hist_names[iobs] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
         const std::string h2_name = "h_" + hist_names[iobs+2] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
+        // const std::string h3_name = "h_" + hist_names[iobs+4] + "rho_local_JetPt_ch_combined_R" + jetR + "_trk10";
 
         std::cout << "iobs: " << iobs << endl;
         std::cout << "h1: " << h1_name.c_str() << endl;
         std::cout << "h2: " << h2_name.c_str() << endl;
+        // std::cout << "h3: " << h2_name.c_str() << endl;
 
         // clone and process histograms
         TH2 *h1_clone = (TH2 *)f->Get(h1_name.c_str())->Clone(Form("%s_clone", h1_name.c_str()));
         TH2 *h2_clone = (TH2 *)f->Get(h2_name.c_str())->Clone(Form("%s_clone", h2_name.c_str()));
+        // TH2 *h3_clone = (TH2 *)f->Get(h3_name.c_str())->Clone(Form("%s_clone", h3_name.c_str()));
         h1_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max)); // apply cut on jet pt
         h2_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
+        // h3_clone->GetXaxis()->SetRangeUser(stof(pt_min), stof(pt_max));
         TH1D *h1_proj = h1_clone->ProjectionY();
         TH1D *h2_proj = h2_clone->ProjectionY();
+        // TH1D *h3_proj = h3_clone->ProjectionY();
         std::string hname;
         hname = "h_rho_jetcone_R" + jetR + "_" + pt_min + "_" + pt_max;
         h1_proj->SetNameTitle(hname.c_str(), hname.c_str());
         hname = "h_rho_mbcone_R" + jetR + "_" + pt_min + "_" + pt_max;
         h2_proj->SetNameTitle(hname.c_str(), hname.c_str());
+        // hname = "h_rho_perpcone_R" + jetR + "_" + pt_min + "_" + pt_max;
+        // h3_proj->SetNameTitle(hname.c_str(), hname.c_str());
         TH1 *h1 = DivideByBinWidth((TH1 *)h1_proj->Clone(h1_proj->GetName()));
         TH1 *h2 = DivideByBinWidth((TH1 *)h2_proj->Clone(h2_proj->GetName()));
-        std::cout << "Integrals: " << h1->Integral() << ", " << h2->Integral() << endl; // ", " << h3->Integral() << ", " << h4->GetMean() << endl;
-        std::cout << "Mean values: " << h1->GetMean() << ", " << h2->GetMean() << endl; // ", " << h3->GetMean() // << ", " << h4->GetMean() << endl;
+        // TH1 *h3 = DivideByBinWidth((TH1 *)h3_proj->Clone(h3_proj->GetName()));
+        std::cout << "Integrals: " << h1->Integral() << ", " << h2->Integral() << endl; // ", " << h3->Integral() << endl; // ", " << h4->GetMean() << endl;
+        std::cout << "Mean values: " << h1->GetMean() << ", " << h2->GetMean() << endl; // ", " << h3->GetMean() << endl; // ", " << h4->GetMean() << endl;
    
         // get normalization
         TH1 *h_JetPt;
@@ -220,6 +228,7 @@ void plot_rho(string pt_min, string pt_max)
         std::cout << njets << endl;
         h1->Scale(1.0 / njets);
         h2->Scale(1.0 / njets);
+        // h3->Scale(1.0 / njets);
 
         // make a canvas
         TCanvas *c = new TCanvas();
@@ -231,18 +240,22 @@ void plot_rho(string pt_min, string pt_max)
         addLegendInfo(l, ptbin, jetRPoint);
 
         FormatHist(l, h1, TString::Format("jet cone (%.1f)", h1->GetMean()), markercolor1, markerstyle1);
-        FormatHist(l, h2, "ME cone", markercolor3, markerstyle3);
+        FormatHist(l, h2, TString::Format("ME cone (%.1f)", h2->GetMean()), markercolor2, markerstyle2);
+        // FormatHist(l, h3, TString::Format("perp cone (%.1f)", h3->GetMean()), markercolor3, markerstyle3);
 
         h1->Rebin(2);
         h2->Rebin(2);
+        // h3->Rebin(2);
         h1->GetXaxis()->SetRangeUser(0., 600.);
         h2->GetXaxis()->SetRangeUser(0., 600.);
-        h1->GetYaxis()->SetRangeUser(0, 0.05);
+        // h3->GetXaxis()->SetRangeUser(0., 600.);
+        h1->GetYaxis()->SetRangeUser(0, 0.035);
         h1->GetXaxis()->SetTitle("#rho_{local} [GeV]");
 
         h1->Draw("hist");
         h1->Draw("L same");
         h2->Draw("L same");
+        // h3->Draw("L same");
         l->Draw("same");
 
         // save canvas to pdf
@@ -256,6 +269,7 @@ void plot_rho(string pt_min, string pt_max)
         f_out->cd();
         h1->Write();
         h2->Write();
+        // h3->Write();
     }
 
     f->Close();

@@ -8,8 +8,8 @@ jet_pt_thrd_combined: 10.0
 debug_level: 0
 
 rm_trk_min_pt: False
-do_cs: True
-do_ics: False
+do_cs: False
+do_ics: True
 do_jet_cone: False
 do_perpcone: True
 do_2cones: True

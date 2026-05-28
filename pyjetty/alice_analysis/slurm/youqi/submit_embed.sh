@@ -11,7 +11,7 @@
 #SBATCH --mem=30G
 
 FILE_PATH_DATA='/global/cfs/cdirs/alice/youqi/lists/files_LHC18qr_randomly_hadd50.txt' #'/global/cfs/cdirs/alice/youqi/lists/files_LHC18qr.txt'
-FILE_PATH_MC='/global/cfs/cdirs/alice/youqi/lists/files_LHC20g4_568_pthat28.txt'
+FILE_PATH_MC='/global/cfs/cdirs/alice/youqi/lists/files_LHC20g4_568_half_pthat12.txt' #'/global/cfs/cdirs/alice/youqi/lists/files_LHC20g4_568_pthat28.txt'
 PROCESS_SCRIPT='/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/single_event_embed_residual.py'
 CONFIG='/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/PbPb/process_data_R04.yaml'
 
@@ -38,6 +38,7 @@ echo "Stopping at file ID: $STOP"
 
 # Load modules
 source /global/cfs/cdirs/alice/youqi/pyjetty_env.sh
+unset SLURM_CPUS_PER_TASK
 
 for (( FILE_ID = $START; FILE_ID <= $STOP; FILE_ID++ ))
 do

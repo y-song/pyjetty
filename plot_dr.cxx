@@ -93,8 +93,9 @@ void plot_dr()
 
     const string jetR = "02";
     const string jetRPoint = "0.2";
-    const string jobID = "48875062";
-    const string subtraction = "csub_wta";
+    const string jobID = "49610714";
+    const string subtraction = "csub";
+    double xMax = stod(jetRPoint)/2.0;
 
     TFile *f = new TFile(("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/" + jobID + "/AnalysisResultsFinal.root").c_str(), "READ");
     // TH2D *h_dr_jetpt_combined_sub_matched = (TH2D *)f->Get(("h_dr_JetPt_combined_sub_matched_R" + jetR).c_str());
@@ -144,7 +145,7 @@ void plot_dr()
     h2_proj->SetLineColor(kRed);
     h1_proj->GetXaxis()->SetTitle("#DeltaR(combined sub, pp det)");
     h1_proj->GetYaxis()->SetTitle("Probability");
-    h1_proj->GetXaxis()->SetRangeUser(0, 0.1);
+    h1_proj->GetXaxis()->SetRangeUser(0, xMax);
     h1_proj->GetYaxis()->SetRangeUser(0.0001, 1.0);
     h1_proj->SetTitle(("Matched jets, " + subtraction).c_str());
     FormatHist(leg1, h1_proj, "40 < #it{p}_{T}^{combined sub} < 60 GeV");
@@ -169,7 +170,7 @@ void plot_dr()
     h8_proj->SetLineColor(kRed);
     h7_proj->GetXaxis()->SetTitle("#DeltaR(combined sub, pp det)");
     h7_proj->GetYaxis()->SetTitle("Probability");
-    h7_proj->GetXaxis()->SetRangeUser(0, 0.1);
+    h7_proj->GetXaxis()->SetRangeUser(0, xMax);
     h7_proj->GetYaxis()->SetRangeUser(0.0001, 1.0);
     h7_proj->SetTitle(("Matched jets, " + subtraction).c_str());
     FormatHist(leg3, h7_proj, "40 < #it{p}_{T}^{pp det} < 60 GeV");

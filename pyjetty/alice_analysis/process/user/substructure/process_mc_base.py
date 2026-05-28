@@ -103,7 +103,7 @@ class ProcessMCBase(process_base.ProcessBase):
       else:
           self.smearRL = False
     else: # if not gen only, set smearRL flag to False
-      self.smearRL = False  
+      self.smearRL = False
       
     self.fast_simulation = config['fast_simulation']
     if self.fast_simulation == True:

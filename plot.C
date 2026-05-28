@@ -117,7 +117,7 @@ TLine *drawHoriLine(double x1, double x2, double y1, int color, int linestyle = 
 void addLegendInfo(TLegend *l, TString ptbin)
 {
     l->SetTextSize(0.045);
-    l->AddEntry("NULL", "PYTHIA8 leading jets + thermal", "h");
+    l->AddEntry("NULL", "PYTHIA8 leading jets + PbPb 0-10%", "h");
     l->AddEntry("NULL", "#sqrt{#it{s}} = 5.02 TeV, #hat{#it{p}}_{T} > 30 GeV", "h");
     l->AddEntry("NULL", "charged jets, anti-#it{k}_{T}, #it{R} = 0.2", "h");
     l->AddEntry("NULL", ptbin, "h");
@@ -143,9 +143,9 @@ void plot()
     int plot_case = 1;
 
     // string one("");
-    const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/AnalysisResultsR02_jets_in_thermal.root";
+    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/44103198/AnalysisResultsFinal.root";
     TFile *f = new TFile(TString(infile), "READ");
-    std::string add_name = "_jets_in_thermal";
+    std::string add_name = "_test";
     std::cout << "output name will be " << add_name << std::endl;
     std::string outdir = "";
     std::string outfile = outdir + "AnalysisResultsOut" + add_name + ".root";

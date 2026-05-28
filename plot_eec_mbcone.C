@@ -78,10 +78,7 @@ void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor = 1, int ma
     hist->SetMarkerStyle(markerstyle);
     hist->SetMarkerSize(0.5);
     l->AddEntry(hist, text, "pl");
-
-    // gPad->SetTickx();
-    // gPad->SetTicky();
-    //  h->SetLineWidth(2);
+    
     hist->GetYaxis()->SetTitleOffset(1.05);
     hist->GetYaxis()->SetTitleSize(0.06); //(0.042);
     hist->GetYaxis()->SetLabelSize(0.05); //(0.042);
@@ -147,11 +144,11 @@ void plot_eec_mbcone(string pt_min, string pt_max)
     gStyle->SetOptStat(0);
     SetStyle();
 
-    const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
-    // const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/48199478/AnalysisResultsFinal.root";
+    // const char infile[] = "/global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/AnalysisResults.root";
+    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/48695459/AnalysisResultsFinal.root";
     const string jetR = "02";
     const string jetRPoint = "0.2";
-    std::string add_name = "_test";
+    std::string add_name = "_48695459";
     std::string outfile = "eec_mbcone_embed_PbPb_R" + jetR + "_" + pt_min + "_" + pt_max + add_name + ".root";
    
     TFile *f = new TFile(TString(infile), "READ");
@@ -164,6 +161,9 @@ void plot_eec_mbcone(string pt_min, string pt_max)
     const int numjetaxes = 2;
     const std::string jetaxis_names[] = {"jet", "matched_jet"};
     const std::string hist_names[] = {"", "matched_", "mbcone"+jetRPoint+"_", "matched_mbcone"+jetRPoint+"_", "2mbcone"+jetRPoint+"_", "matched_2mbcone"+jetRPoint+"_"};
+    // const int numjetaxes = 1;
+    // const std::string jetaxis_names[] = {"jet"};
+    // const std::string hist_names[] = {"", "jet_mbcone"+jetRPoint+"_", "2mbcone"+jetRPoint+"_"};
 
     std::vector<TH1D *> h1;
     std::vector<TH1D *> h2;
@@ -179,10 +179,10 @@ void plot_eec_mbcone(string pt_min, string pt_max)
         const std::string h1_name = "h_" + hist_names[iobs] + "ENC2_ss_JetPt_ch_combined_R" + jetR + "_trk10";
         const std::string h2_name = "h_" + hist_names[iobs] + "ENC2_sb_JetPt_ch_combined_R" + jetR + "_trk10";
         const std::string h3_name = "h_" + hist_names[iobs] + "ENC2_bb_JetPt_ch_combined_R" + jetR + "_trk10";
-        const std::string h4_name = "h_" + hist_names[iobs + 2] + "ENC2_ss_JetPt_ch_combined_R" + jetR + "_trk10";
-        const std::string h5_name = "h_" + hist_names[iobs + 2] + "ENC2_sb_JetPt_ch_combined_R" + jetR + "_trk10";
-        const std::string h6_name = "h_" + hist_names[iobs + 2] + "ENC2_bb_JetPt_ch_combined_R" + jetR + "_trk10";
-        const std::string h7_name = "h_" + hist_names[iobs + 4] + "ENC2_sb_JetPt_ch_combined_R" + jetR + "_trk10";
+        const std::string h4_name = "h_" + hist_names[iobs + numjetaxes] + "ENC2_ss_JetPt_ch_combined_R" + jetR + "_trk10";
+        const std::string h5_name = "h_" + hist_names[iobs + numjetaxes] + "ENC2_sb_JetPt_ch_combined_R" + jetR + "_trk10";
+        const std::string h6_name = "h_" + hist_names[iobs + numjetaxes] + "ENC2_bb_JetPt_ch_combined_R" + jetR + "_trk10";
+        const std::string h7_name = "h_" + hist_names[iobs + numjetaxes*2] + "ENC2_sb_JetPt_ch_combined_R" + jetR + "_trk10";
         
         std::cout << "iobs: " << iobs << endl;
         std::cout << "h1: " << h1_name.c_str() << endl;
@@ -191,6 +191,7 @@ void plot_eec_mbcone(string pt_min, string pt_max)
         std::cout << "h4: " << h4_name.c_str() << endl;
         std::cout << "h5: " << h5_name.c_str() << endl;
         std::cout << "h6: " << h6_name.c_str() << endl;
+        std::cout << "h7: " << h7_name.c_str() << endl;
 
         // clone and process histograms
         TH2 *h1_clone = (TH2 *)f->Get(h1_name.c_str())->Clone(Form("%s_clone", h1_name.c_str()));

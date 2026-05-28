@@ -42,7 +42,7 @@ void SetStyle(Bool_t graypalette = true)
     gStyle->SetLabelOffset(0.01, "x");
     gStyle->SetLabelColor(kBlack, "xyz");
     gStyle->SetTitleSize(0.025, "xyz");
-    gStyle->SetTitleOffset(1.25, "y");
+    gStyle->SetTitleOffset(1.5, "y");
     gStyle->SetTitleOffset(1.2, "x");
     gStyle->SetTitleFillColor(kWhite);
     gStyle->SetTextSizePixels(26);
@@ -59,7 +59,7 @@ void FormatHist(TLegend *l, TH1 *hist, TString text, int color)
     hist->SetMarkerColor(color);
     hist->SetLineColor(color);
     hist->GetYaxis()->SetTitle("Probability density");
-    hist->GetYaxis()->SetTitleOffset(1.2);
+    hist->GetYaxis()->SetTitleOffset(1.5);
     hist->GetYaxis()->SetTitleSize(0.035);
     hist->GetYaxis()->SetLabelSize(0.035);
     hist->GetYaxis()->SetLabelFont(42);
@@ -79,7 +79,7 @@ void addLegendInfo(TLegend *l, string pt_min, string pt_max, string jetR)
 {
     l->SetTextSize(0.032);
     l->AddEntry("NULL", "PYTHIA8 jets + ALICE PbPb 0#minus10%", "h");
-    l->AddEntry("NULL", "#sqrt{#it{s}} = 5.02 TeV, #hat{#it{p}}_{T} > 28 GeV", "h");
+    l->AddEntry("NULL", "#sqrt{#it{s}} = 5.02 TeV, #hat{#it{p}}_{T} > 12 GeV", "h");
     l->AddEntry("NULL", ("charged jets, anti-#it{k}_{T}, #it{R} =" + jetR).c_str(), "h");
     l->AddEntry("NULL", "", "h");
     l->SetBorderSize(0);
@@ -90,10 +90,10 @@ void plot_dpt()
 {
     SetStyle();
 
-    const string jetR = "02";
-    const string jetRPoint = "0.2";
-    const string jobID = "48875062";
-    const string subtraction = "asub";
+    const string jetR = "04";
+    const string jetRPoint = "0.4";
+    const string jobID = "52300263";
+    const string subtraction = "csub";
 
     TFile *f = new TFile(("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/" + jobID + "/AnalysisResultsFinal.root").c_str(), "READ");
     TH2D *h = (TH2D *)f->Get(("h_" + subtraction + "_dpt_JetPt_combined_sub_matched_R" + jetR).c_str());
@@ -151,7 +151,7 @@ void plot_dpt()
     TLegend *leg1 = new TLegend(0.16, 0.56, 0.4662155, 0.88, "");
     addLegendInfo(leg1, "", "", jetRPoint);
     h1_proj->GetXaxis()->SetTitle("#deltap_{T} = p_{T}^{combined sub} #minus p_{T}^{pp det} [GeV]");
-    h1_proj->GetYaxis()->SetRangeUser(0, 0.12);
+    h1_proj->GetYaxis()->SetRangeUser(0, 0.05);
     h1_proj->SetTitle(("Matched jets, " + subtraction).c_str());
     FormatHist(leg1, h1_proj, "40 < #it{p}_{T}^{combined sub} < 60 GeV", kGreen+2);
     FormatHist(leg1, h2_proj, "60 < #it{p}_{T}^{combined sub} < 80 GeV", kRed+2);
@@ -172,7 +172,7 @@ void plot_dpt()
     TLegend *leg2 = new TLegend(0.16, 0.56, 0.4662155, 0.88, "");
     addLegendInfo(leg2, "", "", jetRPoint);
     h4_proj->GetXaxis()->SetTitle("#deltap_{T} = p_{T}^{combined sub} #minus p_{T}^{pp det} [GeV]");
-    h4_proj->GetYaxis()->SetRangeUser(0, 0.12);
+    h4_proj->GetYaxis()->SetRangeUser(0, 0.05);
     h4_proj->SetTitle(("All jets, " + subtraction).c_str());
     FormatHist(leg2, h4_proj, "40 < #it{p}_{T}^{combined sub} < 60 GeV", kGreen+2);
     FormatHist(leg2, h5_proj, "60 < #it{p}_{T}^{combined sub} < 80 GeV", kRed+2);
@@ -194,7 +194,7 @@ void plot_dpt()
     addLegendInfo(leg3, "", "", jetRPoint);
 
     h7_proj->GetXaxis()->SetTitle("#deltap_{T} = p_{T}^{combined sub} #minus p_{T}^{pp det} [GeV]");
-    h7_proj->GetYaxis()->SetRangeUser(0, 0.12);
+    h7_proj->GetYaxis()->SetRangeUser(0, 0.05);
     h7_proj->SetTitle(("Matched jets, " + subtraction).c_str());
     FormatHist(leg3, h7_proj, "40 < #it{p}_{T}^{pp det} < 60 GeV", kGreen+2);
     FormatHist(leg3, h8_proj, "60 < #it{p}_{T}^{pp det} < 80 GeV", kRed+2);

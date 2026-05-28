@@ -1,5 +1,5 @@
 # processing parameters
-jetR: [0.2]
+jetR: [0.4]
 
 debug_level: 0
 
@@ -7,7 +7,7 @@ rm_trk_min_pt: False
 
 thrd: [1.0]
 
-coneR: [0.2]
+coneR: [0.4]
 
 constituent_subtractor:
   max_distance: 0.1

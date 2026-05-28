@@ -340,7 +340,7 @@ class ProcessEmbedENC(process_base.ProcessBase):
         for jetR in self.jetR_list:
             jetR_str = str(jetR).replace('.', '')
             
-            jet_selector = fj.SelectorPtMin(40) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
+            jet_selector = fj.SelectorPtMin(5) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)
             setattr(self, "jet_selector_R%s" % jetR_str, jet_selector)
 
             jet_selector_40 = fj.SelectorPtMin(40) & fj.SelectorAbsEtaMax(self.max_eta_hadron - jetR)

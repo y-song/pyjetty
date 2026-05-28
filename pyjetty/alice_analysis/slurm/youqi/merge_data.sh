@@ -2,10 +2,10 @@
 #
 # Script to merge output ROOT files
 
-JOB_ID=44064427
+JOB_ID=52300263
 
 FILE_DIR=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/$JOB_ID
-FILES=$( find "$FILE_DIR" -name "*.root" )
+FILES=$( find "$FILE_DIR" -name "*.root" -size +500c)
 
 OUTPUT_DIR=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/youqi/$JOB_ID
-hadd -f -j 20 $OUTPUT_DIR/AnalysisResultsFinal.root $FILES
+hadd $OUTPUT_DIR/AnalysisResultsFinal.root $FILES
