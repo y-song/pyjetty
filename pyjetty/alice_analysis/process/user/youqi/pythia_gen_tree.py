@@ -8,7 +8,6 @@ import yaml
 import argparse
 import os
 import array
-import numpy as np
 import sys
 
 import fastjet as fj
@@ -74,21 +73,15 @@ class PythiaGenTree(process_base.ProcessBase):
 
         # Create TTrees
         self.eec_tree = ROOT.TTree("EEC_Tree", "EEC Tree")
-        self.shape_tree = ROOT.TTree("Shape_Tree", "Shape Tree")
 
         # Create variables for branches as instance attributes
         self.jet_pt = array.array('d', [0.0])
         self.pair_rl = array.array('d', [0.0])
         self.pair_weight = array.array('d', [0.0])
-        self.part_r = array.array('d', [0.0])
-        self.part_weight = array.array('d', [0.0])
 
         self.eec_tree.Branch("jet_pt", self.jet_pt, "jet_pt/D")
         self.eec_tree.Branch("pair_rl", self.pair_rl, "pair_rl/D")
         self.eec_tree.Branch("pair_weight", self.pair_weight, "pair_weight/D")
-        self.shape_tree.Branch("jet_pt", self.jet_pt, "jet_pt/D")
-        self.shape_tree.Branch("part_r", self.part_r, "part_r/D")
-        self.shape_tree.Branch("part_weight", self.part_weight, "part_weight/D")
 
         mycfg = []
         self.pythia = pyconf.create_and_init_pythia_from_args(args, mycfg)
@@ -177,12 +170,6 @@ class PythiaGenTree(process_base.ProcessBase):
                 self.pair_rl[0] = correlator_rs[index]
                 self.pair_weight[0] = correlator_weights[index]
                 self.eec_tree.Fill()
-
-            for part in c_select:
-                self.jet_pt[0] = jet.perp()
-                self.part_r[0] = jet.delta_R(part)
-                self.part_weight[0] = part.perp()/jet.perp()
-                self.shape_tree.Fill()
 
 ################################################################
 if __name__ == '__main__':

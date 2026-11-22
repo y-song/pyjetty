@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Example usage:
-# python /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/pythia_gen.py -c /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/pp/pythia_gen.yaml --nev 20 --py-pthatmin 28 --py-seed 1
+# python /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/youqi/pythia_gen.py -c /global/cfs/cdirs/alice/youqi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/ENC/pp/pythia_gen.yaml --nev 20 --py-pthatmin 28 --py-seed 1 --ecm 5360
 
 from __future__ import print_function
 
@@ -62,7 +62,7 @@ class PythiaGen(process_base.ProcessBase):
         self.jetR_list = config["jetR"] 
         self.jet_min_pt = config["jet_min_pt"]
         self.nev = args.nev
-        self.max_eta_hadron = 0.9
+        self.max_eta_hadron = 8.0
 
         if 'rm_trk_min_pt' in config:
             self.rm_trk_min_pt = config['rm_trk_min_pt']
@@ -121,6 +121,12 @@ class PythiaGen(process_base.ProcessBase):
 
             jetR_str = str(jetR).replace('.', '')
 
+            name = 'h_event'
+            h = ROOT.TH1D(name, name, 10, linbins(0, 10, 10))
+            h.GetXaxis().SetTitle('selections')
+            setattr(self, name, h)
+            getattr(self, hist_list_name).append(h)
+            
             name = 'h_JetPt_R{}'.format(jetR_str)
             h = ROOT.TH1D(name, name, 200, pt_bins)
             h.GetXaxis().SetTitle('p_{T, jet}')
@@ -131,6 +137,12 @@ class PythiaGen(process_base.ProcessBase):
             h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
             h.GetXaxis().SetTitle('p_{T, jet}')
             h.GetYaxis().SetTitle('R_{L}')
+            setattr(self, name, h)
+            getattr(self, hist_list_name).append(h)
+
+            name = 'h_FullJetPt_R{}'.format(jetR_str)
+            h = ROOT.TH1D(name, name, 200, pt_bins)
+            h.GetXaxis().SetTitle('p_{T, jet}')
             setattr(self, name, h)
             getattr(self, hist_list_name).append(h)
 
@@ -166,7 +178,7 @@ class PythiaGen(process_base.ProcessBase):
 
             if self.debug_level > 0:
                 print('ievt', iev)
-            if iev % 100 == 0:
+            if iev % 10000 == 0:
                 print('ievt', iev)
 
             if not pythia.next():
@@ -175,13 +187,22 @@ class PythiaGen(process_base.ProcessBase):
             self.event = pythia.event
 
             iev += 1
+            getattr(self, 'h_event').Fill(0.5)
 
             # charged particle level
             self.parts_pythia_ch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
+            self.parts_pythia = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal], 0, True)
             
             cs = fj.ClusterSequence( self.track_selector_ch(self.parts_pythia_ch), self.jet_def )
             jets = fj.sorted_by_pt( self.jet_selector(cs.inclusive_jets()) )
-            
+            cs_full = fj.ClusterSequence( self.track_selector_ch(self.parts_pythia), self.jet_def )
+            jets_full = fj.sorted_by_pt( self.jet_selector(cs_full.inclusive_jets()) )
+
+            if (len(jets_full) > 0):
+                getattr(self, 'h_event').Fill(1.5)
+            if (len(jets) > 0):
+                getattr(self, 'h_event').Fill(2.5)
+
             for jet in jets:
         
                 hname = 'h_JetPt_R{}'.format(jetR_str)
@@ -189,6 +210,11 @@ class PythiaGen(process_base.ProcessBase):
 
                 hname = 'h_EEC_JetPt_R{}'.format(jetR_str)
                 self.fill_EEC_histograms(hname, jet)
+
+            for jet in jets_full:
+        
+                hname = 'h_FullJetPt_R{}'.format(jetR_str)
+                getattr(self, hname).Fill(jet.perp())
             
     #---------------------------------------------------------------
     # Fill EEC histograms

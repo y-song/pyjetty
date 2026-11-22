@@ -357,7 +357,7 @@ class ProcessDataBase(process_base.ProcessBase):
       
       # if rho subtraction, require jet pt > 40 after subtration
       if self.do_rho_subtraction and rho_bge > 0:
-        if jet.perp()-rho_bge*jet.area() < 40:
+        if jet.perp()-rho_bge*jet.area() < 0:
           # FIX ME: not sure whether to apply the area selection or not yet. jet.area() > 0.6*np.pi*jetR*jetR
           is_jet_selected = False
 
@@ -373,6 +373,10 @@ class ProcessDataBase(process_base.ProcessBase):
   
     # reselect jets after background subtraction (for PbPb case)
     jets_reselected = self.reselect_jets(jets_selected, jetR, rho_bge = rho_bge)
+    
+    for i in range(0, len(jets_reselected)):
+      if (i==0):  print("new event")
+      print("ijet, area, pt, eta, phi:", i, ",", jets_reselected[i].area(), ",", jets_reselected[i].perp(), ",", jets_reselected[i].eta(), ",", jets_reselected[i].phi())
 
     suffix = ''
     result = [self.analyze_accepted_jet(jet, jetR, suffix, rho_bge, parts) for jet in jets_reselected]
