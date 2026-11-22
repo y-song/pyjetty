@@ -62,7 +62,7 @@ class PythiaGen(process_base.ProcessBase):
         self.jetR_list = config["jetR"] 
         self.jet_min_pt = config["jet_min_pt"]
         self.nev = args.nev
-        self.max_eta_hadron = 8.0
+        self.max_eta_hadron = 0.9
 
         if 'rm_trk_min_pt' in config:
             self.rm_trk_min_pt = config['rm_trk_min_pt']
